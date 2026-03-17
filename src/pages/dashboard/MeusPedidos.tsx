@@ -267,18 +267,20 @@ const MeusPedidos = () => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
-  const getStatusLabel = (pedido: UnifiedPedido, status: PdfRgStatus): string => {
+  const getStatusLabel = (pedido: UnifiedPedido, status: UnifiedStatus): string => {
     if (pedido.type === 'vps-6') {
       if (status === 'em_confeccao') return 'Instalação de VPS';
       if (status === 'entregue') return 'VPS Concluído';
+      if (status === 'vencido') return 'VPS Vencido';
     }
 
     if (pedido.type === 'dominio-com') {
       if (status === 'em_confeccao') return 'Propagar Domínio';
       if (status === 'entregue') return 'Domínio Propagado';
+      if (status === 'vencido') return 'Domínio Vencido';
     }
 
-    return t.status[status] || status;
+    return (t.status as Record<string, string>)[status] || status;
   };
 
   const getVpsPlanStartAt = (pedido: UnifiedPedido): string | null => {
