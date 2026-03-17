@@ -1,12 +1,12 @@
-CREATE TABLE IF NOT EXISTS sistemas_hospedagem_vps_6 (
+CREATE TABLE IF NOT EXISTS sistemas_hospedagem_vps_1_ano (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    module_id INT NOT NULL DEFAULT 177,
+    module_id INT NOT NULL DEFAULT 179,
     user_id INT NOT NULL,
     nome_solicitante VARCHAR(150) NOT NULL,
     nome_instancia VARCHAR(120) NOT NULL,
     ip_vps VARCHAR(45) NOT NULL,
     configuracao_linux VARCHAR(255) NOT NULL DEFAULT 'Ubuntu 22.04 LTS + Docker + UFW',
-    duracao_meses TINYINT UNSIGNED NOT NULL DEFAULT 6,
+    duracao_meses TINYINT UNSIGNED NOT NULL DEFAULT 12,
     plan_start_at DATETIME NULL,
     plan_end_at DATETIME NULL,
     status ENUM('registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado') NOT NULL DEFAULT 'registrado',

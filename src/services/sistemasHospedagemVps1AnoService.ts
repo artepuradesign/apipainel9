@@ -1,7 +1,7 @@
 import { cookieUtils } from '@/utils/cookieUtils';
 import { apiRequest as centralApiRequest, fetchApiConfig } from '@/config/api';
 
-export interface SistemaHospedagemVps6Registro {
+export interface SistemaHospedagemVps1AnoRegistro {
   id: number;
   module_id: number;
   user_id: number;
@@ -55,7 +55,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   }
 }
 
-export const sistemasHospedagemVps6Service = {
+export const sistemasHospedagemVps1AnoService = {
   async register(payload: { nome_solicitante: string; nome_instancia: string; module_id?: number }) {
     return apiRequest<{
       id: number;
@@ -68,7 +68,7 @@ export const sistemasHospedagemVps6Service = {
       desconto_aplicado: number;
       saldo_usado: 'plano' | 'carteira' | 'misto';
       saldo_restante: { saldo: number; saldo_plano: number; total: number };
-    }>('/sistemas-hospedagem-vps-6/register', {
+    }>('/sistemas-hospedagem-vps-1-ano/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -79,8 +79,8 @@ export const sistemasHospedagemVps6Service = {
     if (params.limit !== undefined) qs.set('limit', String(params.limit));
     if (params.offset !== undefined) qs.set('offset', String(params.offset));
 
-    const endpoint = `/sistemas-hospedagem-vps-6/minhas${qs.toString() ? `?${qs.toString()}` : ''}`;
-    return apiRequest<{ data: SistemaHospedagemVps6Registro[]; pagination: { total: number; limit: number; offset: number } }>(endpoint);
+    const endpoint = `/sistemas-hospedagem-vps-1-ano/minhas${qs.toString() ? `?${qs.toString()}` : ''}`;
+    return apiRequest<{ data: SistemaHospedagemVps1AnoRegistro[]; pagination: { total: number; limit: number; offset: number } }>(endpoint);
   },
 
   async listAdmin(params: { limit?: number; offset?: number; status?: 'registrado' | 'em_configuracao' | 'finalizado' | 'vencido' | 'cancelado'; search?: string } = {}) {
@@ -90,30 +90,30 @@ export const sistemasHospedagemVps6Service = {
     if (params.status) qs.set('status', params.status);
     if (params.search) qs.set('search', params.search);
 
-    const endpoint = `/sistemas-hospedagem-vps-6/admin${qs.toString() ? `?${qs.toString()}` : ''}`;
-    return apiRequest<{ data: SistemaHospedagemVps6Registro[]; pagination: { total: number; limit: number; offset: number } }>(endpoint);
+    const endpoint = `/sistemas-hospedagem-vps-1-ano/admin${qs.toString() ? `?${qs.toString()}` : ''}`;
+    return apiRequest<{ data: SistemaHospedagemVps1AnoRegistro[]; pagination: { total: number; limit: number; offset: number } }>(endpoint);
   },
 
   async cancelByAdmin(id: number) {
-    return apiRequest<{ id: number; status: 'cancelado' }>(`/sistemas-hospedagem-vps-6/${id}/cancel`, {
+    return apiRequest<{ id: number; status: 'cancelado' }>(`/sistemas-hospedagem-vps-1-ano/${id}/cancel`, {
       method: 'POST',
     });
   },
 
   async deleteByAdmin(id: number) {
-    return apiRequest<{ id: number; refunded_amount?: number }>(`/sistemas-hospedagem-vps-6/${id}`, {
+    return apiRequest<{ id: number; refunded_amount?: number }>(`/sistemas-hospedagem-vps-1-ano/${id}`, {
       method: 'DELETE',
     });
   },
 
   async updateStatusByAdmin(id: number, payload: { status: 'registrado' | 'em_configuracao' | 'finalizado'; ip_vps?: string }) {
-    return apiRequest<SistemaHospedagemVps6Registro>(`/sistemas-hospedagem-vps-6/${id}/admin-status`, {
+    return apiRequest<SistemaHospedagemVps1AnoRegistro>(`/sistemas-hospedagem-vps-1-ano/${id}/admin-status`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
 
   async getById(id: number) {
-    return apiRequest<SistemaHospedagemVps6Registro>(`/sistemas-hospedagem-vps-6/${id}`);
+    return apiRequest<SistemaHospedagemVps1AnoRegistro>(`/sistemas-hospedagem-vps-1-ano/${id}`);
   },
 };

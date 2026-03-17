@@ -1,15 +1,15 @@
 <?php
 require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../models/SistemasHospedagemVps6.php';
+require_once __DIR__ . '/../models/SistemasHospedagemVps1Mes.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 
-class SistemasHospedagemVps6Controller {
+class SistemasHospedagemVps1MesController {
     private $db;
     private $model;
 
     public function __construct($db) {
         $this->db = $db;
-        $this->model = new SistemasHospedagemVps6($db);
+        $this->model = new SistemasHospedagemVps1Mes($db);
     }
 
     public function listarMeus() {
