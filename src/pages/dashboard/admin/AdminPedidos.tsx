@@ -926,6 +926,20 @@ const AdminPedidos = () => {
     return getVpsLabel(pedido);
   };
 
+  const getPedidoTypeBadgeClass = (pedidoType: UnifiedPedido['type']) => {
+    if (pedidoType === 'pdf-personalizado') return 'bg-violet-500/10 text-violet-600 border-violet-500/30';
+    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'bg-amber-500/10 text-amber-600 border-amber-500/30';
+    if (pedidoType === 'vps-6') return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30';
+    return 'bg-sky-500/10 text-sky-600 border-sky-500/30';
+  };
+
+  const getPedidoModuleIconColorClass = (pedidoType: UnifiedPedido['type']) => {
+    if (pedidoType === 'pdf-personalizado') return 'text-violet-600';
+    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'text-amber-600';
+    if (pedidoType === 'vps-6') return 'text-cyan-600';
+    return 'text-sky-600';
+  };
+
   const getPedidoModuleIcon = (pedido: Pick<UnifiedPedido, 'type'>): React.ElementType => {
     if (pedido.type === 'pdf-personalizado') return FileEdit;
     if (pedido.type === 'pdf-rg') return Package;
@@ -1146,6 +1160,7 @@ const AdminPedidos = () => {
             <div className="space-y-3">
               {pedidos.map((p) => {
                 const ModuleIcon = getPedidoModuleIcon(p);
+                const moduleIconColorClass = getPedidoModuleIconColorClass(p.type);
 
                 return (
                   <div
@@ -1153,13 +1168,13 @@ const AdminPedidos = () => {
                     className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="h-10 w-10 shrink-0 rounded-md border bg-muted flex items-center justify-center">
-                        <ModuleIcon className="h-5 w-5 text-foreground/80" />
+                      <div className="h-11 w-11 shrink-0 rounded-md border bg-muted flex items-center justify-center">
+                        <ModuleIcon className={`h-6 w-6 ${moduleIconColorClass}`} />
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className={p.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30' : p.type === 'dominio-com' || p.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : p.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30' : 'bg-sky-500/10 text-sky-600 border-sky-500/30'}>
+                          <Badge variant="outline" className={getPedidoTypeBadgeClass(p.type)}>
                             {typeLabel(p)}
                           </Badge>
                           <span className="font-medium text-sm">#{p.id}</span>
@@ -1206,12 +1221,18 @@ const AdminPedidos = () => {
           <DialogHeader>
             <div className="flex items-center justify-between gap-2 pr-8">
               <DialogTitle className="flex items-center gap-2">
-                <Badge variant="outline" className={selectedPedido?.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30 inline-flex items-center gap-2' : selectedPedido?.type === 'dominio-com' || selectedPedido?.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 inline-flex items-center gap-2' : selectedPedido?.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30 inline-flex items-center gap-2' : 'bg-sky-500/10 text-sky-600 border-sky-500/30 inline-flex items-center gap-2'}>
-                  {selectedPedido && (() => {
-                    const ModuleIcon = getPedidoModuleIcon(selectedPedido);
-                    return <ModuleIcon className="h-4 w-4 shrink-0" />;
-                  })()}
-                  <span className="pl-0.5">{selectedPedido ? typeLabel(selectedPedido) : ''}</span>
+                {selectedPedido && (() => {
+                  const ModuleIcon = getPedidoModuleIcon(selectedPedido);
+                  const moduleIconColorClass = getPedidoModuleIconColorClass(selectedPedido.type);
+
+                  return (
+                    <div className="h-9 w-9 shrink-0 rounded-md border bg-muted flex items-center justify-center">
+                      <ModuleIcon className={`h-5 w-5 ${moduleIconColorClass}`} />
+                    </div>
+                  );
+                })()}
+                <Badge variant="outline" className={selectedPedido ? getPedidoTypeBadgeClass(selectedPedido.type) : ''}>
+                  {selectedPedido ? typeLabel(selectedPedido) : ''}
                 </Badge>
                 Pedido #{selectedPedido?.id}
               </DialogTitle>
