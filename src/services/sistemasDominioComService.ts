@@ -103,6 +103,12 @@ export const sistemasDominioComService = {
     });
   },
 
+  async deleteByAdmin(id: number) {
+    return apiRequest<{ id: number; refunded_amount?: number }>(`/sistemas-dominio-com/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   async updateStatusByAdmin(id: number, payload: { status: 'registrado' | 'em_propagacao' | 'finalizado' }) {
     return apiRequest<SistemaDominioComRegistro>(`/sistemas-dominio-com/${id}/admin-status`, {
       method: 'POST',

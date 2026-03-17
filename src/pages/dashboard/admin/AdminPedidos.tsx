@@ -787,30 +787,40 @@ const AdminPedidos = () => {
     }
   };
 
+  const deletePedidoWithRefund = async (pedido: UnifiedPedido) => {
+    if (!confirm('Tem certeza que deseja excluir este pedido e realizar o extorno para o saldo do usuário?')) return false;
+
+    let res;
+    if (pedido.type === 'pdf-rg') {
+      res = await pdfRgService.deletar(pedido.id);
+    } else if (pedido.type === 'pdf-personalizado') {
+      res = await editarPdfService.deletar(pedido.id);
+    } else if (pedido.type === 'dominio-com') {
+      res = await sistemasDominioComService.deleteByAdmin(pedido.id);
+    } else if (pedido.type === 'dominio-com-br') {
+      res = await sistemasDominioComBrService.deleteByAdmin(pedido.id);
+    } else {
+      res = await sistemasHospedagemVps6Service.deleteByAdmin(pedido.id);
+    }
+
+    if (!res?.success) {
+      toast.error(res?.error || 'Erro ao excluir pedido com extorno');
+      return false;
+    }
+
+    toast.success('Pedido excluído com sucesso e valor estornado ao saldo do usuário');
+    if (selectedPedido?.id === pedido.id && selectedPedido?.type === pedido.type) {
+      setSelectedPedido(null);
+    }
+    await loadPedidos();
+    return true;
+  };
+
   const handleDelete = async (pedido: UnifiedPedido) => {
-    if (!confirm('Tem certeza que deseja excluir este pedido?')) return;
     try {
-      let res;
-      if (pedido.type === 'pdf-rg') {
-        res = await pdfRgService.deletar(pedido.id);
-      } else if (pedido.type === 'pdf-personalizado') {
-        res = await editarPdfService.deletar(pedido.id);
-      } else if (pedido.type === 'dominio-com') {
-        res = await sistemasDominioComService.cancelByAdmin(pedido.id);
-      } else if (pedido.type === 'dominio-com-br') {
-        res = await sistemasDominioComBrService.cancelByAdmin(pedido.id);
-      } else {
-        res = await sistemasHospedagemVps6Service.cancelByAdmin(pedido.id);
-      }
-      if (res.success) {
-        toast.success('Pedido atualizado com sucesso');
-        loadPedidos();
-        if (selectedPedido?.id === pedido.id && selectedPedido?.type === pedido.type) setSelectedPedido(null);
-      } else {
-        toast.error(res.error || 'Erro ao excluir');
-      }
-    } catch (e) {
-      toast.error('Erro ao excluir');
+      await deletePedidoWithRefund(pedido);
+    } catch {
+      toast.error('Erro ao excluir pedido com extorno');
     }
   };
 
@@ -839,31 +849,12 @@ const AdminPedidos = () => {
 
   const handleCancelPedido = async (pedido: UnifiedPedido | null) => {
     if (!pedido || !canCancelPedido(pedido.status)) return;
-    if (!confirm('Tem certeza que deseja cancelar este pedido?')) return;
 
     setCancelingPedido(true);
     try {
-      const res = pedido.type === 'pdf-rg'
-        ? await pdfRgService.deletar(pedido.id)
-        : pedido.type === 'pdf-personalizado'
-        ? await editarPdfService.deletar(pedido.id)
-        : pedido.type === 'dominio-com'
-        ? await sistemasDominioComService.cancelByAdmin(pedido.id)
-        : pedido.type === 'dominio-com-br'
-        ? await sistemasDominioComBrService.cancelByAdmin(pedido.id)
-        : await sistemasHospedagemVps6Service.cancelByAdmin(pedido.id);
-
-      if (res.success) {
-        toast.success('Pedido cancelado com sucesso');
-        if (selectedPedido?.id === pedido.id && selectedPedido?.type === pedido.type) {
-          setSelectedPedido(null);
-        }
-        await loadPedidos();
-      } else {
-        toast.error(res.error || 'Erro ao cancelar pedido');
-      }
+      await deletePedidoWithRefund(pedido);
     } catch {
-      toast.error('Erro ao cancelar pedido');
+      toast.error('Erro ao excluir pedido com extorno');
     } finally {
       setCancelingPedido(false);
     }
