@@ -214,8 +214,8 @@ class SistemasHospedagemVps1Mes extends BaseModel {
             throw new Exception('Nome da instância deve ter até 120 caracteres');
         }
 
-        $moduleId = (int)($data['module_id'] ?? 177);
-        $duracaoMeses = 6;
+        $moduleId = (int)($data['module_id'] ?? 178);
+        $duracaoMeses = 1;
         $configuracaoPadrao = 'Ubuntu 22.04 LTS + Docker + UFW';
 
         $this->db->beginTransaction();
