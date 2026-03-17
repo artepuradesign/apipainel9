@@ -332,14 +332,45 @@ class SistemasDominioCom extends BaseModel {
             $row = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
             $type = strtolower((string)($row['Type'] ?? ''));
 
-            $required = ['registrado', 'em_propagacao', 'finalizado', 'cancelado'];
+            $required = ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'];
             $missing = array_filter($required, static fn($value) => strpos($type, "'{$value}'") === false);
 
             if (!empty($missing)) {
                 $this->db->exec(
-                    "ALTER TABLE {$this->table} MODIFY COLUMN status ENUM('registrado','em_propagacao','finalizado','cancelado') NOT NULL DEFAULT 'registrado'"
+                    "ALTER TABLE {$this->table} MODIFY COLUMN status ENUM('registrado','em_propagacao','finalizado','vencido','cancelado') NOT NULL DEFAULT 'registrado'"
                 );
             }
+        } catch (Exception $e) {
+            // fallback silencioso para não bloquear a aplicação
+        }
+    }
+
+    private function ensurePlanDateColumns(): void {
+        try {
+            $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_start_at'");
+            if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_start_at DATETIME NULL AFTER dominio_completo");
+            }
+
+            $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_end_at'");
+            if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_end_at DATETIME NULL AFTER plan_start_at");
+            }
+        } catch (Exception $e) {
+            // fallback silencioso para não bloquear a aplicação
+        }
+    }
+
+    private function expireFinishedRecords(): void {
+        try {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table}
+                 SET status = 'vencido', updated_at = NOW()
+                 WHERE status = 'finalizado'
+                   AND plan_end_at IS NOT NULL
+                   AND plan_end_at <= NOW()"
+            );
+            $stmt->execute();
         } catch (Exception $e) {
             // fallback silencioso para não bloquear a aplicação
         }
