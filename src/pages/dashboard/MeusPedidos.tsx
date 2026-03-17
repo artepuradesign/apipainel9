@@ -353,7 +353,7 @@ const MeusPedidos = () => {
                 <span className={`text-[10px] sm:text-xs mt-2 text-center leading-tight max-w-[80px] ${
                   isActive ? (isEmConfeccao ? 'text-blue-600 font-semibold' : 'text-emerald-600 font-semibold') : 'text-muted-foreground'
                 }`}>
-                  {t.status[step]}
+                  {getStatusLabel(pedido, step)}
                 </span>
                 {timestamp && isActive && (
                   <span className="text-[9px] text-muted-foreground mt-0.5">
