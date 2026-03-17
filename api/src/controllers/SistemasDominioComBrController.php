@@ -1,15 +1,15 @@
 <?php
 require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../models/SistemasDominioComBr.php';
+require_once __DIR__ . '/../models/SistemasDominioCom.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 
-class SistemasDominioComBrController {
+class SistemasDominioComController {
     private $db;
     private $model;
 
     public function __construct($db) {
         $this->db = $db;
-        $this->model = new SistemasDominioComBr($db);
+        $this->model = new SistemasDominioCom($db);
     }
 
     public function verificarDisponibilidade() {
@@ -132,6 +132,39 @@ class SistemasDominioComBrController {
             Response::success(['id' => $id, 'status' => 'cancelado'], 'Pedido cancelado com sucesso');
         } catch (Exception $e) {
             Response::error('Erro ao cancelar pedido: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function atualizarStatusAdmin(int $id) {
+        try {
+            $userId = AuthMiddleware::getCurrentUserId();
+            if (!$userId) {
+                Response::error('Usuário não autenticado', 401);
+                return;
+            }
+
+            if (!$this->isAdminOrSupport((int)$userId)) {
+                Response::error('Acesso negado', 403);
+                return;
+            }
+
+            if ($id <= 0) {
+                Response::error('ID inválido', 400);
+                return;
+            }
+
+            $raw = file_get_contents('php://input');
+            $input = json_decode($raw, true);
+            if (!$input || !isset($input['status'])) {
+                Response::error('Status é obrigatório', 400);
+                return;
+            }
+
+            $status = trim((string)$input['status']);
+            $row = $this->model->updateAdminWorkflow($id, $status);
+            Response::success($row, 'Status do pedido atualizado com sucesso');
+        } catch (Exception $e) {
+            Response::error($e->getMessage(), 400);
         }
     }
 
