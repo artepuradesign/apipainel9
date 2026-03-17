@@ -205,13 +205,15 @@ class SistemasHospedagemVps6 extends BaseModel {
         $this->db->beginTransaction();
 
         try {
-            $moduleStmt = $this->db->prepare("SELECT price FROM modules WHERE id = ? LIMIT 1");
+            $moduleStmt = $this->db->prepare("SELECT name, price FROM modules WHERE id = ? LIMIT 1");
             $moduleStmt->execute([$moduleId]);
             $moduleData = $moduleStmt->fetch(PDO::FETCH_ASSOC);
             $precoOriginal = (float)($moduleData['price'] ?? 0);
             if ($precoOriginal <= 0) {
                 throw new Exception('Preço do módulo não configurado');
             }
+
+            $duracaoMeses = $this->resolveDurationMonthsFromModule($moduleData['name'] ?? null, $duracaoMeses);
 
             $userStmt = $this->db->prepare("SELECT saldo, saldo_plano, tipoplano FROM users WHERE id = ? LIMIT 1 FOR UPDATE");
             $userStmt->execute([$userId]);
