@@ -569,7 +569,11 @@ const MeusPedidos = () => {
       ? t.typeRg
       : type === 'pdf-personalizado'
       ? t.typeCustom
-      : t.typeDomain
+      : type === 'dominio-com'
+      ? t.typeDomain
+      : type === 'dominio-com-br'
+      ? 'Domínio .COM.BR'
+      : 'VPS 6 Meses'
   );
   const canCancelPedido = (status: PdfRgStatus) => ['realizado', 'pagamento_confirmado'].includes(status);
 
