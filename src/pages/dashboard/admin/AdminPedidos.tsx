@@ -1144,43 +1144,50 @@ const AdminPedidos = () => {
             <p className="text-center text-muted-foreground py-8">Nenhum pedido encontrado.</p>
           ) : (
             <div className="space-y-3">
-              {pedidos.map((p) => (
-                <div
-                  key={`${p.type}-${p.id}`}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className={p.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30 inline-flex items-center gap-2' : p.type === 'dominio-com' || p.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 inline-flex items-center gap-2' : p.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30 inline-flex items-center gap-2' : 'bg-sky-500/10 text-sky-600 border-sky-500/30 inline-flex items-center gap-2'}>
-                        {(() => {
-                          const ModuleIcon = getPedidoModuleIcon(p);
-                          return <ModuleIcon className="h-4 w-4 shrink-0" />;
-                        })()}
-                        <span className="pl-0.5">{typeLabel(p)}</span>
-                      </Badge>
-                      <span className="font-medium text-sm">#{p.id}</span>
-                      <span className="text-sm">{p.label}</span>
-                      {p.sublabel && <span className="text-sm text-muted-foreground truncate max-w-[200px]">— {p.sublabel}</span>}
+              {pedidos.map((p) => {
+                const ModuleIcon = getPedidoModuleIcon(p);
+
+                return (
+                  <div
+                    key={`${p.type}-${p.id}`}
+                    className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="h-10 w-10 shrink-0 rounded-md border bg-muted flex items-center justify-center">
+                        <ModuleIcon className="h-5 w-5 text-foreground/80" />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className={p.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30' : p.type === 'dominio-com' || p.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : p.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30' : 'bg-sky-500/10 text-sky-600 border-sky-500/30'}>
+                            {typeLabel(p)}
+                          </Badge>
+                          <span className="font-medium text-sm">#{p.id}</span>
+                          <span className="text-sm">{p.label}</span>
+                          {p.sublabel && <span className="text-sm text-muted-foreground truncate max-w-[200px]">— {p.sublabel}</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className={statusColors[p.status] || ''}>
+                            {getStatusLabelByType(p.type, p.status)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(p.created_at).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className={statusColors[p.status] || ''}>
-                        {getStatusLabelByType(p.type, p.status)}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(p.created_at).toLocaleDateString('pt-BR')}
-                      </span>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" onClick={() => handleViewDetail(p)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => handleViewDetail(p)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(p)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
