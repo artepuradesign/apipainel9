@@ -171,12 +171,17 @@ class SistemasDominioCom extends BaseModel {
         }
 
         $stmt = $this->db->prepare(
-            "UPDATE {$this->table} SET status = ?, updated_at = NOW() WHERE id = ? AND status <> 'cancelado'"
+            "UPDATE {$this->table}
+             SET status = ?,
+                 plan_start_at = COALESCE(plan_start_at, created_at),
+                 plan_end_at = COALESCE(plan_end_at, DATE_ADD(COALESCE(plan_start_at, created_at), INTERVAL 12 MONTH)),
+                 updated_at = NOW()
+             WHERE id = ? AND status NOT IN ('cancelado', 'vencido')"
         );
         $stmt->execute([$status, $id]);
 
         $rowStmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ?
              LIMIT 1"
@@ -193,6 +198,7 @@ class SistemasDominioCom extends BaseModel {
                 'registrado' => 'Registrado',
                 'em_propagacao' => 'Em Propagação',
                 'finalizado' => 'Finalizado',
+                'vencido' => 'Vencido',
             ];
             $statusLabel = $statusLabelMap[$row['status']] ?? $row['status'];
 
