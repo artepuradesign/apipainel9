@@ -474,6 +474,8 @@ const MeusPedidos = () => {
             entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
             nome_solicitante: p.nome_solicitante,
             dominio_completo: p.dominio_completo,
+            plan_start_at: p.plan_start_at,
+            plan_end_at: p.plan_end_at,
           });
         });
       }
