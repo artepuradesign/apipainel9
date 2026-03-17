@@ -150,12 +150,32 @@ class SistemasHospedagemVps6 extends BaseModel {
             'updated_at = NOW()'
         ];
         $params = [$status];
-...
+
+        if ($ipVps !== null) {
+            $fields[] = 'ip_vps = ?';
+            $params[] = trim($ipVps);
+        }
+
+        $params[] = $id;
+
         $stmt = $this->db->prepare(
             "UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE id = ? AND status NOT IN ('cancelado', 'vencido')"
         );
         $stmt->execute($params);
-...
+
+        $rowStmt = $this->db->prepare(
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+             FROM {$this->table}
+             WHERE id = ?
+             LIMIT 1"
+        );
+        $rowStmt->execute([$id]);
+        $row = $rowStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            throw new Exception('Pedido não encontrado');
+        }
+
         if ((int)($row['user_id'] ?? 0) > 0 && ($currentRow['status'] ?? '') !== ($row['status'] ?? '')) {
             $statusLabelMap = [
                 'registrado' => 'Registrado',
