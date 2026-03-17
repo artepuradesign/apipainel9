@@ -840,12 +840,20 @@ const AdminPedidos = () => {
     setPdfFile(file);
   };
 
-  const typeLabel = (type: string) => {
-    if (type === 'pdf-rg') return 'PDF RG';
-    if (type === 'pdf-personalizado') return 'PDF Personalizado';
-    if (type === 'dominio-com') return 'DOMÍNIO .COM';
-    if (type === 'dominio-com-br') return 'DOMÍNIO .COM.BR';
+  const getVpsLabel = (pedido: Pick<UnifiedPedido, 'type' | 'raw_vps'>) => {
+    if (pedido.type !== 'vps-6') return '';
+    const months = Number(pedido.raw_vps?.duracao_meses || 0);
+    if (months >= 12) return 'VPS 1 ANO';
+    if (months <= 1) return 'VPS 1 MÊS';
     return 'VPS 6 MESES';
+  };
+
+  const typeLabel = (pedido: Pick<UnifiedPedido, 'type' | 'raw_vps'>) => {
+    if (pedido.type === 'pdf-rg') return 'PDF RG';
+    if (pedido.type === 'pdf-personalizado') return 'PDF Personalizado';
+    if (pedido.type === 'dominio-com') return 'DOMÍNIO .COM';
+    if (pedido.type === 'dominio-com-br') return 'DOMÍNIO .COM.BR';
+    return getVpsLabel(pedido);
   };
   const canCancelPedido = (status: PdfRgStatus) => !['entregue', 'cancelado'].includes(status);
 
