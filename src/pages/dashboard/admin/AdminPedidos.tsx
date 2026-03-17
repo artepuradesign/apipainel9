@@ -1079,7 +1079,7 @@ const AdminPedidos = () => {
             <SelectItem value="pdf-personalizado">PDF Personalizado</SelectItem>
             <SelectItem value="dominio-com">DOMÍNIO .COM</SelectItem>
             <SelectItem value="dominio-com-br">DOMÍNIO .COM.BR</SelectItem>
-            <SelectItem value="vps-6">VPS 6 MESES</SelectItem>
+            <SelectItem value="vps-6">VPS (1 MÊS, 6 MESES, 1 ANO)</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
