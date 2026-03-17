@@ -610,16 +610,22 @@ const MeusPedidos = () => {
     }
   };
 
-  const getTypeLabel = (type: string) => (
-    type === 'pdf-rg'
+  const getVpsLabel = (pedido: UnifiedPedido) => {
+    if ((pedido.duracao_meses || 0) >= 12) return 'VPS 1 ANO';
+    if ((pedido.duracao_meses || 0) <= 1) return 'VPS 1 MÊS';
+    return 'VPS 6 MESES';
+  };
+
+  const getTypeLabel = (pedido: UnifiedPedido) => (
+    pedido.type === 'pdf-rg'
       ? t.typeRg
-      : type === 'pdf-personalizado'
+      : pedido.type === 'pdf-personalizado'
       ? t.typeCustom
-      : type === 'dominio-com'
+      : pedido.type === 'dominio-com'
       ? t.typeDomain
-      : type === 'dominio-com-br'
+      : pedido.type === 'dominio-com-br'
       ? 'Domínio .COM.BR'
-      : 'VPS 6 Meses'
+      : getVpsLabel(pedido)
   );
   const canCancelPedido = (status: PdfRgStatus) => ['realizado', 'pagamento_confirmado'].includes(status);
 
