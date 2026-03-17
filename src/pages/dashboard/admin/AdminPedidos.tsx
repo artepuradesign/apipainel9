@@ -433,6 +433,8 @@ const AdminPedidos = () => {
               pagamento_confirmado_at: vps.status === 'cancelado' ? null : vps.created_at,
               em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
               entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
+              plan_start_at: vps.plan_start_at,
+              plan_end_at: vps.plan_end_at,
               raw_vps: vps,
             });
           });
