@@ -400,7 +400,7 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     private function resolveDurationMonthsFromModule(?string $moduleName, int $fallback): int {
-        $normalizedName = mb_strtolower(trim((string)$moduleName));
+        $normalizedName = strtolower(trim((string)$moduleName));
         if ($normalizedName === '') {
             return max(1, $fallback);
         }
