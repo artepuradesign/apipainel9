@@ -1212,7 +1212,7 @@ const AdminPedidos = () => {
             <div className="space-y-3">
               {pedidos.map((p) => {
                 const ModuleIcon = getPedidoModuleIcon(p);
-                const moduleIconColorClass = getPedidoModuleIconColorClass(p.type);
+                const moduleColor = getPedidoModuleColor(p.type);
 
                 return (
                   <div
@@ -1221,7 +1221,7 @@ const AdminPedidos = () => {
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="h-11 w-11 shrink-0 rounded-md border bg-muted flex items-center justify-center">
-                        <ModuleIcon className={`h-6 w-6 ${moduleIconColorClass}`} />
+                        {ModuleIcon ? <ModuleIcon className="h-6 w-6" style={{ color: moduleColor }} /> : null}
                       </div>
 
                       <div className="flex-1 min-w-0">
