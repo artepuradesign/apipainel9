@@ -12,7 +12,7 @@ export interface SistemaHospedagemVps6Registro {
   duracao_meses: number;
   plan_start_at: string | null;
   plan_end_at: string | null;
-  status: 'registrado' | 'em_configuracao' | 'finalizado' | 'cancelado';
+  status: 'registrado' | 'em_configuracao' | 'finalizado' | 'vencido' | 'cancelado';
   valor_cobrado: number;
   desconto_aplicado: number;
   saldo_usado: 'plano' | 'carteira' | 'misto';

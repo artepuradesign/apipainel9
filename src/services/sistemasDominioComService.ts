@@ -8,10 +8,12 @@ export interface SistemaDominioComRegistro {
   nome_solicitante: string;
   dominio_nome: string;
   dominio_completo: string;
-  status: 'registrado' | 'em_propagacao' | 'finalizado' | 'cancelado';
+  status: 'registrado' | 'em_propagacao' | 'finalizado' | 'vencido' | 'cancelado';
   valor_cobrado: number;
   desconto_aplicado: number;
   saldo_usado: 'plano' | 'carteira' | 'misto';
+  plan_start_at: string | null;
+  plan_end_at: string | null;
   created_at: string;
   updated_at: string;
 }
