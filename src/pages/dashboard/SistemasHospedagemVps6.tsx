@@ -82,6 +82,33 @@ const SistemasHospedagemVps6 = () => {
   const hasSufficientBalance = toCents(totalBalance) >= toCents(finalPrice);
   const canRegister = Boolean(user && nomeSolicitante.trim() && finalPrice > 0);
 
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusLabel = (status: SistemaHospedagemVps6Registro['status']) => {
+    if (status === 'registrado') return 'Pagamento confirmado';
+    if (status === 'em_configuracao') return 'Instalação de VPS';
+    if (status === 'finalizado') return 'VPS concluída';
+    return 'Cancelado';
+  };
+
+  const getStatusBadgeClass = (status: SistemaHospedagemVps6Registro['status']) => {
+    if (status === 'finalizado') return 'bg-primary text-primary-foreground';
+    if (status === 'em_configuracao') return 'bg-accent text-accent-foreground';
+    if (status === 'registrado') return 'bg-secondary text-secondary-foreground';
+    return 'bg-destructive text-destructive-foreground';
+  };
+
   const loadRegistros = useCallback(async () => {
     if (!user?.id) return;
     try {
