@@ -239,6 +239,7 @@ const AdminPedidos = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [deletingPdf, setDeletingPdf] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
+  const [savingWorkflowIp, setSavingWorkflowIp] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [cancelingPedido, setCancelingPedido] = useState(false);
   const [qrCadastroSelecionado, setQrCadastroSelecionado] = useState<QrRegistration | null>(null);
