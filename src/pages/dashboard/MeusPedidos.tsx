@@ -612,6 +612,8 @@ const MeusPedidos = () => {
     ? 'bg-violet-500/10 text-violet-600 border-violet-500/20'
     : type === 'pdf-personalizado'
     ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+    : type === 'vps-6'
+    ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'
     : 'bg-sky-500/10 text-sky-600 border-sky-500/20';
 
   return (
