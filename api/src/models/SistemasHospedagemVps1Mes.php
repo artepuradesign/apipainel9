@@ -520,7 +520,7 @@ class SistemasHospedagemVps1Mes extends BaseModel {
         $stmt = $this->db->prepare(
             "INSERT INTO wallet_transactions
             (user_id, wallet_type, type, amount, balance_before, balance_after, description, payment_method, reference_type, reference_id, status, created_at, updated_at)
-            VALUES (?, ?, 'consulta', ?, ?, ?, ?, 'saldo', 'sistemas_hospedagem_vps_6', ?, 'completed', NOW(), NOW())"
+            VALUES (?, ?, 'consulta', ?, ?, ?, ?, 'saldo', 'sistemas_hospedagem_vps_1_mes', ?, 'completed', NOW(), NOW())"
         );
 
         $stmt->execute([
