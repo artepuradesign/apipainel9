@@ -345,6 +345,8 @@ class SistemasHospedagemVps6 extends BaseModel {
                 'ip_vps' => $ipVps,
                 'configuracao_linux' => $configuracaoPadrao,
                 'duracao_meses' => $duracaoMeses,
+                'plan_start_at' => $planStartAt,
+                'plan_end_at' => $planEndAt,
                 'valor_cobrado' => $valorFinal,
                 'desconto_aplicado' => $descontoValor,
                 'saldo_usado' => $saldoUsado,
