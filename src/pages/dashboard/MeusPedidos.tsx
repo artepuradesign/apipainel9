@@ -157,28 +157,33 @@ const textByLocale: Record<Locale, any> = {
   },
 };
 
-const statusIcons: Record<PdfRgStatus, React.ReactNode> = {
+type UnifiedStatus = PdfRgStatus | 'vencido';
+
+const statusIcons: Record<UnifiedStatus, React.ReactNode> = {
   realizado: <Package className="h-5 w-5" />,
   pagamento_confirmado: <DollarSign className="h-5 w-5" />,
   em_confeccao: <Hammer className="h-5 w-5" />,
   entregue: <CheckCircle className="h-5 w-5" />,
+  vencido: <Ban className="h-5 w-5" />,
   cancelado: <Ban className="h-5 w-5" />,
 };
 
-const statusBadgeColors: Record<PdfRgStatus, string> = {
+const statusBadgeColors: Record<UnifiedStatus, string> = {
   realizado: 'bg-emerald-500 text-white',
   pagamento_confirmado: 'bg-emerald-500 text-white',
   em_confeccao: 'bg-blue-500 text-white',
   entregue: 'bg-emerald-500 text-white',
+  vencido: 'bg-destructive text-destructive-foreground',
   cancelado: 'bg-destructive text-destructive-foreground',
 };
 
-const getStatusIndex = (status: PdfRgStatus) => status === 'cancelado' ? -1 : STATUS_ORDER.indexOf(status);
+const getStatusIndex = (status: UnifiedStatus) => (status === 'cancelado' || status === 'vencido' ? -1 : STATUS_ORDER.indexOf(status));
 
-type ModuleWorkflowStatus = 'registrado' | 'em_configuracao' | 'em_propagacao' | 'finalizado' | 'cancelado';
+type ModuleWorkflowStatus = 'registrado' | 'em_configuracao' | 'em_propagacao' | 'finalizado' | 'vencido' | 'cancelado';
 
-const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: ModuleWorkflowStatus): PdfRgStatus => {
+const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: ModuleWorkflowStatus): UnifiedStatus => {
   if (status === 'cancelado') return 'cancelado';
+  if (status === 'vencido') return 'vencido';
   if (status === 'finalizado') return 'entregue';
   if (pedidoType === 'vps-6' && status === 'em_configuracao') return 'em_confeccao';
   if (pedidoType === 'dominio-com' && status === 'em_propagacao') return 'em_confeccao';
