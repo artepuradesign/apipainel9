@@ -172,8 +172,18 @@ const statusBadgeColors: Record<PdfRgStatus, string> = {
 
 const getStatusIndex = (status: PdfRgStatus) => status === 'cancelado' ? -1 : STATUS_ORDER.indexOf(status);
 
+type ModuleWorkflowStatus = 'registrado' | 'em_configuracao' | 'em_propagacao' | 'finalizado' | 'cancelado';
+
+const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: ModuleWorkflowStatus): PdfRgStatus => {
+  if (status === 'cancelado') return 'cancelado';
+  if (status === 'finalizado') return 'entregue';
+  if (pedidoType === 'vps-6' && status === 'em_configuracao') return 'em_confeccao';
+  if (pedidoType === 'dominio-com' && status === 'em_propagacao') return 'em_confeccao';
+  return 'pagamento_confirmado';
+};
+
 type UnifiedPedido = {
-  type: 'pdf-rg' | 'pdf-personalizado' | 'dominio-com';
+  type: 'pdf-rg' | 'pdf-personalizado' | 'dominio-com' | 'dominio-com-br' | 'vps-6';
   id: number;
   status: PdfRgStatus;
   preco_pago: number | string;
@@ -198,6 +208,8 @@ type UnifiedPedido = {
   nome_solicitante?: string;
   descricao_alteracoes?: string;
   dominio_completo?: string;
+  nome_instancia?: string;
+  ip_vps?: string;
 };
 
 const MeusPedidos = () => {
