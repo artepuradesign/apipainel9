@@ -319,14 +319,16 @@ const MeusPedidos = () => {
     );
   };
 
-  const loadPedidos = useCallback(async () => {
+  const loadPedidos = useCallback(async (silent = false) => {
     if (!user?.id) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
-      const [resRg, resPersonalizado, resDominio] = await Promise.all([
+      const [resRg, resPersonalizado, resDominioCom, resDominioComBr, resVps6] = await Promise.all([
         pdfRgService.listar({ limit: 50, user_id: Number(user.id) }),
         editarPdfService.listar({ limit: 50, user_id: Number(user.id) }),
         sistemasDominioComService.listMine({ limit: 50, offset: 0 }),
+        sistemasDominioComBrService.listMine({ limit: 50, offset: 0 }),
+        sistemasHospedagemVps6Service.listMine({ limit: 50, offset: 0 }),
       ]);
 
       const allPedidos: UnifiedPedido[] = [];
@@ -383,11 +385,31 @@ const MeusPedidos = () => {
         });
       }
 
-      if (resDominio.success && resDominio.data?.data) {
-        resDominio.data.data.forEach((p) => {
-          const isCanceled = p.status === 'cancelado';
+      if (resDominioCom.success && resDominioCom.data?.data) {
+        resDominioCom.data.data.forEach((p: SistemaDominioComRegistro) => {
+          const mappedStatus = mapModuleStatusToUnified('dominio-com', p.status as ModuleWorkflowStatus);
+          const statusTimestamp = p.updated_at || p.created_at;
           allPedidos.push({
             type: 'dominio-com',
+            id: p.id,
+            status: mappedStatus,
+            preco_pago: p.valor_cobrado,
+            created_at: p.created_at,
+            realizado_at: p.created_at,
+            pagamento_confirmado_at: p.status === 'cancelado' ? null : p.created_at,
+            em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
+            entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
+            nome_solicitante: p.nome_solicitante,
+            dominio_completo: p.dominio_completo,
+          });
+        });
+      }
+
+      if (resDominioComBr.success && resDominioComBr.data?.data) {
+        resDominioComBr.data.data.forEach((p: SistemaDominioComBrRegistro) => {
+          const isCanceled = p.status === 'cancelado';
+          allPedidos.push({
+            type: 'dominio-com-br',
             id: p.id,
             status: isCanceled ? 'cancelado' : 'pagamento_confirmado',
             preco_pago: p.valor_cobrado,
@@ -402,18 +424,60 @@ const MeusPedidos = () => {
         });
       }
 
+      if (resVps6.success && resVps6.data?.data) {
+        resVps6.data.data.forEach((p: SistemaHospedagemVps6Registro) => {
+          const mappedStatus = mapModuleStatusToUnified('vps-6', p.status as ModuleWorkflowStatus);
+          const statusTimestamp = p.updated_at || p.created_at;
+          allPedidos.push({
+            type: 'vps-6',
+            id: p.id,
+            status: mappedStatus,
+            preco_pago: p.valor_cobrado,
+            created_at: p.created_at,
+            realizado_at: p.created_at,
+            pagamento_confirmado_at: p.status === 'cancelado' ? null : p.created_at,
+            em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
+            entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
+            nome_solicitante: p.nome_solicitante,
+            nome_instancia: p.nome_instancia,
+            ip_vps: p.ip_vps,
+          });
+        });
+      }
+
       allPedidos.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setPedidos(allPedidos);
     } catch {
-      toast.error(t.loadOrdersError);
+      if (!silent) toast.error(t.loadOrdersError);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [user?.id, t.loadOrdersError]);
 
   useEffect(() => {
     loadPedidos();
   }, [loadPedidos]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const interval = window.setInterval(() => {
+      loadPedidos(true);
+    }, 10000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadPedidos(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [user?.id, loadPedidos]);
 
   const handleView = async (pedido: UnifiedPedido) => {
     try {
