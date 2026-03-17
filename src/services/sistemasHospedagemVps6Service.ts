@@ -12,7 +12,7 @@ export interface SistemaHospedagemVps6Registro {
   duracao_meses: number;
   plan_start_at: string | null;
   plan_end_at: string | null;
-  status: 'registrado' | 'em_configuracao' | 'finalizado' | 'cancelado';
+  status: 'registrado' | 'em_configuracao' | 'finalizado' | 'vencido' | 'cancelado';
   valor_cobrado: number;
   desconto_aplicado: number;
   saldo_usado: 'plano' | 'carteira' | 'misto';
@@ -83,7 +83,7 @@ export const sistemasHospedagemVps6Service = {
     return apiRequest<{ data: SistemaHospedagemVps6Registro[]; pagination: { total: number; limit: number; offset: number } }>(endpoint);
   },
 
-  async listAdmin(params: { limit?: number; offset?: number; status?: 'registrado' | 'em_configuracao' | 'finalizado' | 'cancelado'; search?: string } = {}) {
+  async listAdmin(params: { limit?: number; offset?: number; status?: 'registrado' | 'em_configuracao' | 'finalizado' | 'vencido' | 'cancelado'; search?: string } = {}) {
     const qs = new URLSearchParams();
     if (params.limit !== undefined) qs.set('limit', String(params.limit));
     if (params.offset !== undefined) qs.set('offset', String(params.offset));

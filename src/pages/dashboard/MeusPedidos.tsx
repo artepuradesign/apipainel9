@@ -33,6 +33,7 @@ const textByLocale: Record<Locale, any> = {
       pagamento_confirmado: 'Pagamento Confirmado',
       em_confeccao: 'Em Confecção',
       entregue: 'Entregue',
+      vencido: 'Vencido',
       cancelado: 'Cancelado',
     },
     canceledAudit: 'Pedido cancelado e mantido no histórico para auditoria.',
@@ -75,6 +76,7 @@ const textByLocale: Record<Locale, any> = {
       pagamento_confirmado: 'Payment Confirmed',
       em_confeccao: 'In Production',
       entregue: 'Delivered',
+      vencido: 'Expired',
       cancelado: 'Canceled',
     },
     canceledAudit: 'Order canceled and kept in history for audit purposes.',
@@ -117,6 +119,7 @@ const textByLocale: Record<Locale, any> = {
       pagamento_confirmado: 'Pago Confirmado',
       em_confeccao: 'En Producción',
       entregue: 'Entregado',
+      vencido: 'Vencido',
       cancelado: 'Cancelado',
     },
     canceledAudit: 'Pedido cancelado y mantenido en el historial para auditoría.',
@@ -154,28 +157,33 @@ const textByLocale: Record<Locale, any> = {
   },
 };
 
-const statusIcons: Record<PdfRgStatus, React.ReactNode> = {
+type UnifiedStatus = PdfRgStatus | 'vencido';
+
+const statusIcons: Record<UnifiedStatus, React.ReactNode> = {
   realizado: <Package className="h-5 w-5" />,
   pagamento_confirmado: <DollarSign className="h-5 w-5" />,
   em_confeccao: <Hammer className="h-5 w-5" />,
   entregue: <CheckCircle className="h-5 w-5" />,
+  vencido: <Ban className="h-5 w-5" />,
   cancelado: <Ban className="h-5 w-5" />,
 };
 
-const statusBadgeColors: Record<PdfRgStatus, string> = {
+const statusBadgeColors: Record<UnifiedStatus, string> = {
   realizado: 'bg-emerald-500 text-white',
   pagamento_confirmado: 'bg-emerald-500 text-white',
   em_confeccao: 'bg-blue-500 text-white',
   entregue: 'bg-emerald-500 text-white',
+  vencido: 'bg-destructive text-destructive-foreground',
   cancelado: 'bg-destructive text-destructive-foreground',
 };
 
-const getStatusIndex = (status: PdfRgStatus) => status === 'cancelado' ? -1 : STATUS_ORDER.indexOf(status);
+const getStatusIndex = (status: UnifiedStatus) => (status === 'cancelado' || status === 'vencido' ? -1 : STATUS_ORDER.indexOf(status));
 
-type ModuleWorkflowStatus = 'registrado' | 'em_configuracao' | 'em_propagacao' | 'finalizado' | 'cancelado';
+type ModuleWorkflowStatus = 'registrado' | 'em_configuracao' | 'em_propagacao' | 'finalizado' | 'vencido' | 'cancelado';
 
-const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: ModuleWorkflowStatus): PdfRgStatus => {
+const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: ModuleWorkflowStatus): UnifiedStatus => {
   if (status === 'cancelado') return 'cancelado';
+  if (status === 'vencido') return 'vencido';
   if (status === 'finalizado') return 'entregue';
   if (pedidoType === 'vps-6' && status === 'em_configuracao') return 'em_confeccao';
   if (pedidoType === 'dominio-com' && status === 'em_propagacao') return 'em_confeccao';
@@ -185,7 +193,7 @@ const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: Mod
 type UnifiedPedido = {
   type: 'pdf-rg' | 'pdf-personalizado' | 'dominio-com' | 'dominio-com-br' | 'vps-6';
   id: number;
-  status: PdfRgStatus;
+  status: UnifiedStatus;
   preco_pago: number | string;
   created_at: string;
   realizado_at: string | null;
@@ -259,18 +267,20 @@ const MeusPedidos = () => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
-  const getStatusLabel = (pedido: UnifiedPedido, status: PdfRgStatus): string => {
+  const getStatusLabel = (pedido: UnifiedPedido, status: UnifiedStatus): string => {
     if (pedido.type === 'vps-6') {
       if (status === 'em_confeccao') return 'Instalação de VPS';
       if (status === 'entregue') return 'VPS Concluído';
+      if (status === 'vencido') return 'VPS Vencido';
     }
 
     if (pedido.type === 'dominio-com') {
       if (status === 'em_confeccao') return 'Propagar Domínio';
       if (status === 'entregue') return 'Domínio Propagado';
+      if (status === 'vencido') return 'Domínio Vencido';
     }
 
-    return t.status[status] || status;
+    return (t.status as Record<string, string>)[status] || status;
   };
 
   const getVpsPlanStartAt = (pedido: UnifiedPedido): string | null => {
@@ -288,6 +298,21 @@ const MeusPedidos = () => {
     return addMonthsToDateTime(planStartAt, Number(pedido.duracao_meses || 6));
   };
 
+  const getDomainPlanStartAt = (pedido: UnifiedPedido): string | null => {
+    if (pedido.type !== 'dominio-com') return null;
+    return pedido.plan_start_at || pedido.pagamento_confirmado_at || pedido.created_at || null;
+  };
+
+  const getDomainPlanEndAt = (pedido: UnifiedPedido): string | null => {
+    if (pedido.type !== 'dominio-com') return null;
+    if (pedido.plan_end_at) return pedido.plan_end_at;
+
+    const planStartAt = getDomainPlanStartAt(pedido);
+    if (!planStartAt) return null;
+
+    return addMonthsToDateTime(planStartAt, 12);
+  };
+
   const [pedidos, setPedidos] = useState<UnifiedPedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPedido, setSelectedPedido] = useState<UnifiedPedido | null>(null);
@@ -295,23 +320,22 @@ const MeusPedidos = () => {
   const [cancelingPedidoKey, setCancelingPedidoKey] = useState<string | null>(null);
 
   const getStepTimestamp = (pedido: UnifiedPedido, step: ActivePedidoStatus): string | null => {
-    const map: Record<PdfRgStatus, string | null> = {
+    const map: Record<ActivePedidoStatus, string | null> = {
       realizado: pedido.realizado_at,
       pagamento_confirmado: pedido.pagamento_confirmado_at,
       em_confeccao: pedido.em_confeccao_at,
       entregue: pedido.entregue_at,
-      cancelado: null,
     };
     return map[step];
   };
 
   const StatusTracker = ({ pedido }: { pedido: UnifiedPedido }) => {
-    if (pedido.status === 'cancelado') {
+    if (pedido.status === 'cancelado' || pedido.status === 'vencido') {
       return (
         <div className="w-full py-4 px-4">
           <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-foreground flex items-center gap-2">
             <Ban className="h-4 w-4 text-destructive" />
-            {t.canceledAudit}
+            {pedido.status === 'vencido' ? 'Prazo finalizado: pedido vencido.' : t.canceledAudit}
           </div>
         </div>
       );
@@ -450,6 +474,8 @@ const MeusPedidos = () => {
             entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
             nome_solicitante: p.nome_solicitante,
             dominio_completo: p.dominio_completo,
+            plan_start_at: p.plan_start_at,
+            plan_end_at: p.plan_end_at,
           });
         });
       }
@@ -557,6 +583,8 @@ const MeusPedidos = () => {
             ...pedido,
             nome_solicitante: p.nome_solicitante,
             dominio_completo: p.dominio_completo,
+            plan_start_at: p.plan_start_at,
+            plan_end_at: p.plan_end_at,
             preco_pago: p.valor_cobrado,
             status: mappedStatus,
             created_at: p.created_at,
@@ -680,7 +708,7 @@ const MeusPedidos = () => {
       ? 'Domínio .COM.BR'
       : getVpsLabel(pedido)
   );
-  const canCancelPedido = (status: PdfRgStatus) => ['realizado', 'pagamento_confirmado'].includes(status);
+  const canCancelPedido = (status: UnifiedStatus) => ['realizado', 'pagamento_confirmado'].includes(status);
 
   const handleCancelPedido = async (pedido: UnifiedPedido) => {
     if (!canCancelPedido(pedido.status) || pedido.type === 'dominio-com') return;
@@ -697,11 +725,11 @@ const MeusPedidos = () => {
         toast.success(t.canceledSuccess);
         setPedidos((prev) => prev.map((item) => (
           item.type === pedido.type && item.id === pedido.id
-            ? { ...item, status: 'cancelado' as PdfRgStatus }
+            ? { ...item, status: 'cancelado' as UnifiedStatus }
             : item
         )));
         if (selectedPedido && selectedPedido.type === pedido.type && selectedPedido.id === pedido.id) {
-          setSelectedPedido({ ...selectedPedido, status: 'cancelado' as PdfRgStatus });
+          setSelectedPedido({ ...selectedPedido, status: 'cancelado' as UnifiedStatus });
         }
       } else {
         toast.error(res.error || t.cancelError);
@@ -785,6 +813,8 @@ const MeusPedidos = () => {
                       <>
                         {p.nome_solicitante && <p>{t.requester}: <span className="text-foreground">{p.nome_solicitante}</span></p>}
                         {p.dominio_completo && <p>{t.domain}: <span className="text-foreground font-mono">{p.dominio_completo}</span></p>}
+                        <p>Início do domínio: <span className="text-foreground">{formatFullDate(getDomainPlanStartAt(p)) || '—'}</span></p>
+                        <p>Término do domínio: <span className="text-foreground">{formatFullDate(getDomainPlanEndAt(p)) || '—'}</span></p>
                         <p>{t.value}: <span className="text-foreground font-medium">R$ {Number(p.preco_pago || 0).toFixed(2)}</span></p>
                       </>
                     )}
@@ -862,6 +892,8 @@ const MeusPedidos = () => {
                   <>
                     {selectedPedido.nome_solicitante && <><span className="text-muted-foreground">{t.requester}:</span><span>{selectedPedido.nome_solicitante}</span></>}
                     {selectedPedido.dominio_completo && <><span className="text-muted-foreground">{t.domain}:</span><span className="font-mono">{selectedPedido.dominio_completo}</span></>}
+                    <><span className="text-muted-foreground">Início do domínio:</span><span>{formatFullDate(getDomainPlanStartAt(selectedPedido)) || '—'}</span></>
+                    <><span className="text-muted-foreground">Término do domínio:</span><span>{formatFullDate(getDomainPlanEndAt(selectedPedido)) || '—'}</span></>
                   </>
                 )}
                 <span className="text-muted-foreground">{t.value}:</span><span>R$ {Number(selectedPedido.preco_pago || 0).toFixed(2)}</span>

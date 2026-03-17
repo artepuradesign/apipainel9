@@ -12,6 +12,8 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function findByIdForUser(int $id, int $userId): ?array {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare(
             "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
@@ -24,6 +26,8 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function listByUser(int $userId, int $limit = 50, int $offset = 0): array {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare(
             "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
@@ -36,6 +40,8 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function countByUser(int $userId): int {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM {$this->table} WHERE user_id = ?");
         $stmt->execute([$userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -43,10 +49,12 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function listForAdmin(?string $status, ?string $search, int $limit = 50, int $offset = 0): array {
+        $this->expireFinishedRecords();
+
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
@@ -78,10 +86,12 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function countForAdmin(?string $status, ?string $search): int {
+        $this->expireFinishedRecords();
+
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
@@ -149,7 +159,7 @@ class SistemasHospedagemVps6 extends BaseModel {
         $params[] = $id;
 
         $stmt = $this->db->prepare(
-            "UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE id = ? AND status <> 'cancelado'"
+            "UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE id = ? AND status NOT IN ('cancelado', 'vencido')"
         );
         $stmt->execute($params);
 
@@ -171,6 +181,7 @@ class SistemasHospedagemVps6 extends BaseModel {
                 'registrado' => 'Registrado',
                 'em_configuracao' => 'Em Configuração',
                 'finalizado' => 'Finalizado',
+                'vencido' => 'Vencido',
             ];
             $statusLabel = $statusLabelMap[$row['status']] ?? $row['status'];
 
@@ -375,12 +386,12 @@ class SistemasHospedagemVps6 extends BaseModel {
             $row = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
             $type = strtolower((string)($row['Type'] ?? ''));
 
-            $required = ['registrado', 'em_configuracao', 'finalizado', 'cancelado'];
+            $required = ['registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado'];
             $missing = array_filter($required, static fn($value) => strpos($type, "'{$value}'") === false);
 
             if (!empty($missing)) {
                 $this->db->exec(
-                    "ALTER TABLE {$this->table} MODIFY COLUMN status ENUM('registrado','em_configuracao','finalizado','cancelado') NOT NULL DEFAULT 'registrado'"
+                    "ALTER TABLE {$this->table} MODIFY COLUMN status ENUM('registrado','em_configuracao','finalizado','vencido','cancelado') NOT NULL DEFAULT 'registrado'"
                 );
             }
         } catch (Exception $e) {
@@ -399,6 +410,21 @@ class SistemasHospedagemVps6 extends BaseModel {
             if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
                 $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_end_at DATETIME NULL AFTER plan_start_at");
             }
+        } catch (Exception $e) {
+            // fallback silencioso para não bloquear a aplicação
+        }
+    }
+
+    private function expireFinishedRecords(): void {
+        try {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table}
+                 SET status = 'vencido', updated_at = NOW()
+                 WHERE status = 'finalizado'
+                   AND plan_end_at IS NOT NULL
+                   AND plan_end_at <= NOW()"
+            );
+            $stmt->execute();
         } catch (Exception $e) {
             // fallback silencioso para não bloquear a aplicação
         }

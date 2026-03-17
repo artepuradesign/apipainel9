@@ -8,10 +8,12 @@ export interface SistemaDominioComRegistro {
   nome_solicitante: string;
   dominio_nome: string;
   dominio_completo: string;
-  status: 'registrado' | 'em_propagacao' | 'finalizado' | 'cancelado';
+  status: 'registrado' | 'em_propagacao' | 'finalizado' | 'vencido' | 'cancelado';
   valor_cobrado: number;
   desconto_aplicado: number;
   saldo_usado: 'plano' | 'carteira' | 'misto';
+  plan_start_at: string | null;
+  plan_end_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,7 +88,7 @@ export const sistemasDominioComService = {
     return apiRequest<{ data: SistemaDominioComRegistro[]; pagination: { total: number; limit: number; offset: number } }>(endpoint);
   },
 
-  async listAdmin(params: { limit?: number; offset?: number; status?: 'registrado' | 'em_propagacao' | 'finalizado' | 'cancelado'; search?: string } = {}) {
+  async listAdmin(params: { limit?: number; offset?: number; status?: 'registrado' | 'em_propagacao' | 'finalizado' | 'vencido' | 'cancelado'; search?: string } = {}) {
     const qs = new URLSearchParams();
     if (params.limit !== undefined) qs.set('limit', String(params.limit));
     if (params.offset !== undefined) qs.set('offset', String(params.offset));

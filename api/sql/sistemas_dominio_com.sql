@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS sistemas_dominio_com (
     nome_solicitante VARCHAR(150) NOT NULL,
     dominio_nome VARCHAR(63) NOT NULL,
     dominio_completo VARCHAR(67) NOT NULL,
-    status ENUM('registrado', 'em_propagacao', 'finalizado', 'cancelado') NOT NULL DEFAULT 'registrado',
+    plan_start_at DATETIME NULL,
+    plan_end_at DATETIME NULL,
+    status ENUM('registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado') NOT NULL DEFAULT 'registrado',
     valor_cobrado DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     desconto_aplicado DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     saldo_usado ENUM('plano', 'carteira', 'misto') NOT NULL DEFAULT 'carteira',
@@ -14,5 +16,6 @@ CREATE TABLE IF NOT EXISTS sistemas_dominio_com (
     UNIQUE KEY uq_dominio_completo (dominio_completo),
     INDEX idx_user_id (user_id),
     INDEX idx_module_id (module_id),
-    INDEX idx_status (status)
+    INDEX idx_status (status),
+    INDEX idx_plan_end_at (plan_end_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

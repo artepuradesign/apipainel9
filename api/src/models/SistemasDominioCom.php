@@ -8,6 +8,7 @@ class SistemasDominioCom extends BaseModel {
     public function __construct($db) {
         parent::__construct($db);
         $this->ensureStatusEnum();
+        $this->ensurePlanDateColumns();
     }
 
     public function normalizeDomainName(string $input): string {
@@ -38,8 +39,10 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function findByIdForUser(int $id, int $userId): ?array {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ? AND user_id = ?
              LIMIT 1"
@@ -63,8 +66,10 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function listByUser(int $userId, int $limit = 50, int $offset = 0): array {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE user_id = ?
              ORDER BY id DESC
@@ -75,6 +80,8 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function countByUser(int $userId): int {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM {$this->table} WHERE user_id = ?");
         $stmt->execute([$userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -82,10 +89,12 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function listForAdmin(?string $status, ?string $search, int $limit = 50, int $offset = 0): array {
+        $this->expireFinishedRecords();
+
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
@@ -101,7 +110,7 @@ class SistemasDominioCom extends BaseModel {
         $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              {$whereSql}
              ORDER BY id DESC
@@ -116,10 +125,12 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function countForAdmin(?string $status, ?string $search): int {
+        $this->expireFinishedRecords();
+
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
@@ -160,12 +171,17 @@ class SistemasDominioCom extends BaseModel {
         }
 
         $stmt = $this->db->prepare(
-            "UPDATE {$this->table} SET status = ?, updated_at = NOW() WHERE id = ? AND status <> 'cancelado'"
+            "UPDATE {$this->table}
+             SET status = ?,
+                 plan_start_at = COALESCE(plan_start_at, created_at),
+                 plan_end_at = COALESCE(plan_end_at, DATE_ADD(COALESCE(plan_start_at, created_at), INTERVAL 12 MONTH)),
+                 updated_at = NOW()
+             WHERE id = ? AND status NOT IN ('cancelado', 'vencido')"
         );
         $stmt->execute([$status, $id]);
 
         $rowStmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ?
              LIMIT 1"
@@ -182,6 +198,7 @@ class SistemasDominioCom extends BaseModel {
                 'registrado' => 'Registrado',
                 'em_propagacao' => 'Em Propagação',
                 'finalizado' => 'Finalizado',
+                'vencido' => 'Vencido',
             ];
             $statusLabel = $statusLabelMap[$row['status']] ?? $row['status'];
 
@@ -263,10 +280,13 @@ class SistemasDominioCom extends BaseModel {
                 $saldoUsado = 'plano';
             }
 
+            $planStartAt = date('Y-m-d H:i:s');
+            $planEndAt = date('Y-m-d H:i:s', strtotime('+12 months', strtotime($planStartAt)));
+
             $insertStmt = $this->db->prepare(
                 "INSERT INTO {$this->table}
-                (module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
+                (module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
             );
             $insertStmt->execute([
                 $moduleId,
@@ -274,6 +294,8 @@ class SistemasDominioCom extends BaseModel {
                 $nomeSolicitante,
                 $availability['dominio_nome'],
                 $availability['dominio_completo'],
+                $planStartAt,
+                $planEndAt,
                 $valorFinal,
                 $descontoValor,
                 $saldoUsado,
@@ -324,6 +346,8 @@ class SistemasDominioCom extends BaseModel {
                 'module_id' => $moduleId,
                 'registro_id' => $registroId,
                 'dominio' => $availability['dominio_completo'],
+                'plan_start_at' => $planStartAt,
+                'plan_end_at' => $planEndAt,
                 'saldo_usado' => $saldoUsado,
                 'desconto_aplicado' => $descontoValor,
                 'preco_original' => $precoOriginal,
@@ -346,6 +370,8 @@ class SistemasDominioCom extends BaseModel {
                 'id' => $registroId,
                 'dominio_nome' => $availability['dominio_nome'],
                 'dominio_completo' => $availability['dominio_completo'],
+                'plan_start_at' => $planStartAt,
+                'plan_end_at' => $planEndAt,
                 'valor_cobrado' => $valorFinal,
                 'desconto_aplicado' => $descontoValor,
                 'saldo_usado' => $saldoUsado,
@@ -369,14 +395,45 @@ class SistemasDominioCom extends BaseModel {
             $row = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
             $type = strtolower((string)($row['Type'] ?? ''));
 
-            $required = ['registrado', 'em_propagacao', 'finalizado', 'cancelado'];
+            $required = ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'];
             $missing = array_filter($required, static fn($value) => strpos($type, "'{$value}'") === false);
 
             if (!empty($missing)) {
                 $this->db->exec(
-                    "ALTER TABLE {$this->table} MODIFY COLUMN status ENUM('registrado','em_propagacao','finalizado','cancelado') NOT NULL DEFAULT 'registrado'"
+                    "ALTER TABLE {$this->table} MODIFY COLUMN status ENUM('registrado','em_propagacao','finalizado','vencido','cancelado') NOT NULL DEFAULT 'registrado'"
                 );
             }
+        } catch (Exception $e) {
+            // fallback silencioso para não bloquear a aplicação
+        }
+    }
+
+    private function ensurePlanDateColumns(): void {
+        try {
+            $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_start_at'");
+            if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_start_at DATETIME NULL AFTER dominio_completo");
+            }
+
+            $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_end_at'");
+            if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_end_at DATETIME NULL AFTER plan_start_at");
+            }
+        } catch (Exception $e) {
+            // fallback silencioso para não bloquear a aplicação
+        }
+    }
+
+    private function expireFinishedRecords(): void {
+        try {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table}
+                 SET status = 'vencido', updated_at = NOW()
+                 WHERE status = 'finalizado'
+                   AND plan_end_at IS NOT NULL
+                   AND plan_end_at <= NOW()"
+            );
+            $stmt->execute();
         } catch (Exception $e) {
             // fallback silencioso para não bloquear a aplicação
         }
