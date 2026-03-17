@@ -15,6 +15,7 @@ import DashboardTitleCard from '@/components/dashboard/DashboardTitleCard';
 import QrCadastroCard from '@/components/qrcode/QrCadastroCard';
 import { getFullApiUrl } from '@/utils/apiHelper';
 import { cookieUtils } from '@/utils/cookieUtils';
+import { serviceModules } from '@/components/dashboard/modules/moduleData';
 import { sistemasDominioComService, type SistemaDominioComRegistro } from '@/services/sistemasDominioComService';
 import { sistemasDominioComBrService, type SistemaDominioComBrRegistro } from '@/services/sistemasDominioComBrService';
 import { sistemasHospedagemVps6Service, type SistemaHospedagemVps6Registro } from '@/services/sistemasHospedagemVps6Service';
@@ -924,6 +925,25 @@ const AdminPedidos = () => {
     if (pedido.type === 'dominio-com-br') return 'DOMÍNIO .COM.BR';
     return getVpsLabel(pedido);
   };
+
+  const getPedidoModuleIcon = (pedido: Pick<UnifiedPedido, 'type'>): React.ElementType => {
+    if (pedido.type === 'pdf-personalizado') return FileEdit;
+    if (pedido.type === 'pdf-rg') return Package;
+
+    const modulePathByType: Partial<Record<UnifiedPedido['type'], string>> = {
+      'dominio-com': '/dashboard/sistemas-dominio-com',
+      'dominio-com-br': '/dashboard/sistemas-dominio-com-br',
+      'vps-6': '/dashboard/sistemas-hospedagem-vps-6',
+    };
+
+    const modulePath = modulePathByType[pedido.type];
+    const configuredModule = modulePath ? serviceModules.find((module) => module.path === modulePath) : null;
+
+    if (configuredModule?.icon) return configuredModule.icon;
+    if (pedido.type === 'vps-6') return Server;
+    return Globe;
+  };
+
   const canCancelPedido = (status: PdfRgStatus) => !['entregue', 'cancelado'].includes(status);
 
   const handleCancelPedido = async (pedido: UnifiedPedido | null) => {
@@ -1132,7 +1152,10 @@ const AdminPedidos = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className={p.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30' : p.type === 'dominio-com' || p.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : p.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30' : 'bg-sky-500/10 text-sky-600 border-sky-500/30'}>
-                        {p.type === 'pdf-personalizado' ? <FileEdit className="h-3 w-3 mr-1" /> : p.type === 'dominio-com' || p.type === 'dominio-com-br' ? <Globe className="h-3 w-3 mr-1" /> : p.type === 'vps-6' ? <Server className="h-3 w-3 mr-1" /> : <Package className="h-3 w-3 mr-1" />}
+                        {(() => {
+                          const ModuleIcon = getPedidoModuleIcon(p);
+                          return <ModuleIcon className="h-3 w-3 mr-1" />;
+                        })()}
                         {typeLabel(p)}
                       </Badge>
                       <span className="font-medium text-sm">#{p.id}</span>
@@ -1177,6 +1200,10 @@ const AdminPedidos = () => {
             <div className="flex items-center justify-between gap-2 pr-8">
               <DialogTitle className="flex items-center gap-2">
                 <Badge variant="outline" className={selectedPedido?.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30' : selectedPedido?.type === 'dominio-com' || selectedPedido?.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : selectedPedido?.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30' : 'bg-sky-500/10 text-sky-600 border-sky-500/30'}>
+                  {selectedPedido && (() => {
+                    const ModuleIcon = getPedidoModuleIcon(selectedPedido);
+                    return <ModuleIcon className="h-3 w-3 mr-1" />;
+                  })()}
                   {selectedPedido ? typeLabel(selectedPedido) : ''}
                 </Badge>
                 Pedido #{selectedPedido?.id}
