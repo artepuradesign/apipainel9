@@ -63,7 +63,7 @@ class SistemasHospedagemVps6 extends BaseModel {
         $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              {$whereSql}
              ORDER BY id DESC
