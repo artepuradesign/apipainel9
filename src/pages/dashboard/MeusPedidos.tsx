@@ -804,6 +804,13 @@ const MeusPedidos = () => {
                       </>
                     )}
                   </>
+                ) : selectedPedido.type === 'vps-6' ? (
+                  <>
+                    {selectedPedido.nome_instancia && <><span className="text-muted-foreground">Instância:</span><span>{selectedPedido.nome_instancia}</span></>}
+                    {selectedPedido.ip_vps && <><span className="text-muted-foreground">IP:</span><span className="font-mono">{selectedPedido.ip_vps}</span></>}
+                    <><span className="text-muted-foreground">Início do plano:</span><span>{formatFullDate(selectedPedido.plan_start_at || null) || '—'}</span></>
+                    <><span className="text-muted-foreground">Término do plano:</span><span>{formatFullDate(selectedPedido.plan_end_at || null) || '—'}</span></>
+                  </>
                 ) : (
                   <>
                     {selectedPedido.nome_solicitante && <><span className="text-muted-foreground">{t.requester}:</span><span>{selectedPedido.nome_solicitante}</span></>}
