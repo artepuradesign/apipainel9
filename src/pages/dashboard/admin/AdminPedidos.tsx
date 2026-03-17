@@ -673,6 +673,60 @@ const AdminPedidos = () => {
     }
   };
 
+  const handleSaveWorkflowIp = async () => {
+    if (!selectedPedido || selectedPedido.type !== 'vps-6') return;
+    const targetStatus = mapUnifiedToModuleStatus(selectedPedido.type, selectedPedido.status);
+    if (!targetStatus || targetStatus === 'cancelado' || targetStatus === 'em_propagacao') return;
+
+    setSavingWorkflowIp(true);
+    try {
+      const res = await sistemasHospedagemVps6Service.updateStatusByAdmin(selectedPedido.id, {
+        status: targetStatus,
+        ip_vps: workflowIp.trim(),
+      });
+
+      if (!res.success || !res.data) {
+        toast.error(res.error || 'Erro ao salvar IP da VPS');
+        return;
+      }
+
+      const vps = res.data;
+      const mappedStatus = mapModuleStatusToUnified('vps-6', vps.status as ModuleWorkflowStatus);
+      const statusTimestamp = vps.updated_at || vps.created_at;
+
+      setWorkflowIp(vps.ip_vps || '');
+      setSelectedPedido((prev) => prev ? {
+        ...prev,
+        status: mappedStatus,
+        sublabel: `IP: ${vps.ip_vps?.trim() ? vps.ip_vps : 'pendente'}`,
+        pagamento_confirmado_at: vps.status === 'cancelado' ? null : vps.created_at,
+        em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
+        entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
+        plan_start_at: vps.plan_start_at,
+        plan_end_at: vps.plan_end_at,
+        raw_vps: vps,
+      } : null);
+
+      setPedidos((prev) => prev.map((item) => (
+        item.type === 'vps-6' && item.id === selectedPedido.id
+          ? {
+              ...item,
+              sublabel: `IP: ${vps.ip_vps?.trim() ? vps.ip_vps : 'pendente'}`,
+              plan_start_at: vps.plan_start_at,
+              plan_end_at: vps.plan_end_at,
+              raw_vps: vps,
+            }
+          : item
+      )));
+
+      toast.success('IP da VPS salvo com sucesso');
+    } catch {
+      toast.error('Erro ao salvar IP da VPS');
+    } finally {
+      setSavingWorkflowIp(false);
+    }
+  };
+
   const getExistingPdfNome = () => {
     if (!selectedPedido) return null;
     // Check unified field first (updated after save), then raw data
