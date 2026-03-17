@@ -10,12 +10,13 @@ import { toast } from 'sonner';
 import { pdfRgService, PdfRgPedido, PdfRgStatus } from '@/services/pdfRgService';
 import { editarPdfService, EditarPdfPedido } from '@/services/pdfPersonalizadoService';
 import { qrcodeRegistrationsService, type QrRegistration } from '@/services/qrcodeRegistrationsService';
-import { Search, Eye, Trash2, RefreshCw, Download, Loader2, Upload, Package, DollarSign, Hammer, CheckCircle, X, FileEdit, Ban, Globe, Server } from 'lucide-react';
+import { Search, Eye, Trash2, RefreshCw, Download, Loader2, Upload, Package, DollarSign, Hammer, CheckCircle, X, FileEdit, Ban } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import DashboardTitleCard from '@/components/dashboard/DashboardTitleCard';
 import QrCadastroCard from '@/components/qrcode/QrCadastroCard';
 import { getFullApiUrl } from '@/utils/apiHelper';
 import { cookieUtils } from '@/utils/cookieUtils';
-import { serviceModules } from '@/components/dashboard/modules/moduleData';
+import { moduleService, type Module as ApiModule } from '@/utils/apiService';
 import { sistemasDominioComService, type SistemaDominioComRegistro } from '@/services/sistemasDominioComService';
 import { sistemasDominioComBrService, type SistemaDominioComBrRegistro } from '@/services/sistemasDominioComBrService';
 import { sistemasHospedagemVps6Service, type SistemaHospedagemVps6Registro } from '@/services/sistemasHospedagemVps6Service';
@@ -146,6 +147,11 @@ type UnifiedPedido = {
   raw_vps?: SistemaHospedagemVps6Registro;
 };
 
+type PedidoModuleConfig = {
+  icon?: string;
+  color?: string;
+};
+
 const getStepTimestamp = (pedido: UnifiedPedido, step: ActivePedidoStatus): string | null => {
   const map: Record<PdfRgStatus, string | null> = {
     realizado: pedido.realizado_at,
@@ -257,6 +263,65 @@ const AdminPedidos = () => {
   const [qrCadastroLoading, setQrCadastroLoading] = useState(false);
   const [workflowIp, setWorkflowIp] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [moduleConfigsByType, setModuleConfigsByType] = useState<Partial<Record<UnifiedPedido['type'], PedidoModuleConfig>>>({});
+
+  const normalizeModuleRoute = useCallback((value?: string | null) => {
+    const raw = (value || '').trim();
+    if (!raw) return '';
+    if (raw.startsWith('/')) return raw;
+    if (raw.startsWith('dashboard/')) return `/${raw}`;
+    return `/dashboard/${raw}`;
+  }, []);
+
+  const resolvePedidoModuleConfig = useCallback((modules: ApiModule[], pedidoType: UnifiedPedido['type']): PedidoModuleConfig => {
+    const byType = {
+      'pdf-rg': ['pdf-rg', 'pdf rg', 'rg pdf'],
+      'pdf-personalizado': ['pdf-personalizado', 'pdf personalizado'],
+      'dominio-com': ['sistemas-dominio-com', 'dominio-com', 'domínio .com'],
+      'dominio-com-br': ['sistemas-dominio-com-br', 'dominio-com-br', 'domínio .com.br'],
+      'vps-6': ['sistemas-hospedagem-vps-6', 'hospedagem-vps-6', 'vps 6 meses'],
+    } as const;
+
+    const candidates = byType[pedidoType] || [];
+
+    const found = modules.find((module) => {
+      const route = normalizeModuleRoute(module.api_endpoint || module.path || '');
+      const haystack = [module.slug, module.name, module.title, route]
+        .map((item) => (item || '').toLowerCase());
+
+      return candidates.some((candidate) => haystack.some((value) => value.includes(candidate)));
+    });
+
+    return {
+      icon: found?.icon,
+      color: found?.color,
+    };
+  }, [normalizeModuleRoute]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadModulesConfig = async () => {
+      const response = await moduleService.getAll();
+      if (!isMounted || !response.success || !response.data) return;
+
+      const nextConfigs: Partial<Record<UnifiedPedido['type'], PedidoModuleConfig>> = {
+        'pdf-rg': resolvePedidoModuleConfig(response.data, 'pdf-rg'),
+        'pdf-personalizado': resolvePedidoModuleConfig(response.data, 'pdf-personalizado'),
+        'dominio-com': resolvePedidoModuleConfig(response.data, 'dominio-com'),
+        'dominio-com-br': resolvePedidoModuleConfig(response.data, 'dominio-com-br'),
+        'vps-6': resolvePedidoModuleConfig(response.data, 'vps-6'),
+      };
+
+      setModuleConfigsByType(nextConfigs);
+    };
+
+    loadModulesConfig();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvePedidoModuleConfig]);
 
   const loadQrCadastroByPedido = useCallback(async (pedido: PdfRgPedido) => {
     setQrCadastroLoading(true);
@@ -933,29 +998,16 @@ const AdminPedidos = () => {
     return 'bg-sky-500/10 text-sky-600 border-sky-500/30';
   };
 
-  const getPedidoModuleIconColorClass = (pedidoType: UnifiedPedido['type']) => {
-    if (pedidoType === 'pdf-personalizado') return 'text-violet-600';
-    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'text-amber-600';
-    if (pedidoType === 'vps-6') return 'text-cyan-600';
-    return 'text-sky-600';
+  const getPedidoModuleIcon = (pedido: Pick<UnifiedPedido, 'type'>): React.ElementType | null => {
+    const iconName = moduleConfigsByType[pedido.type]?.icon;
+    if (!iconName) return null;
+
+    const iconsMap = LucideIcons as unknown as Record<string, React.ElementType>;
+    return iconsMap[iconName] || null;
   };
 
-  const getPedidoModuleIcon = (pedido: Pick<UnifiedPedido, 'type'>): React.ElementType => {
-    if (pedido.type === 'pdf-personalizado') return FileEdit;
-    if (pedido.type === 'pdf-rg') return Package;
-
-    const modulePathByType: Partial<Record<UnifiedPedido['type'], string>> = {
-      'dominio-com': '/dashboard/sistemas-dominio-com',
-      'dominio-com-br': '/dashboard/sistemas-dominio-com-br',
-      'vps-6': '/dashboard/sistemas-hospedagem-vps-6',
-    };
-
-    const modulePath = modulePathByType[pedido.type];
-    const configuredModule = modulePath ? serviceModules.find((module) => module.path === modulePath) : null;
-
-    if (configuredModule?.icon) return configuredModule.icon;
-    if (pedido.type === 'vps-6') return Server;
-    return Globe;
+  const getPedidoModuleColor = (pedidoType: UnifiedPedido['type']) => {
+    return moduleConfigsByType[pedidoType]?.color;
   };
 
   const canCancelPedido = (status: PdfRgStatus) => !['entregue', 'cancelado'].includes(status);
@@ -1160,7 +1212,7 @@ const AdminPedidos = () => {
             <div className="space-y-3">
               {pedidos.map((p) => {
                 const ModuleIcon = getPedidoModuleIcon(p);
-                const moduleIconColorClass = getPedidoModuleIconColorClass(p.type);
+                const moduleColor = getPedidoModuleColor(p.type);
 
                 return (
                   <div
@@ -1169,7 +1221,7 @@ const AdminPedidos = () => {
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="h-11 w-11 shrink-0 rounded-md border bg-muted flex items-center justify-center">
-                        <ModuleIcon className={`h-6 w-6 ${moduleIconColorClass}`} />
+                        {ModuleIcon ? <ModuleIcon className="h-6 w-6" style={{ color: moduleColor }} /> : null}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -1223,11 +1275,13 @@ const AdminPedidos = () => {
               <DialogTitle className="flex items-center gap-2">
                 {selectedPedido && (() => {
                   const ModuleIcon = getPedidoModuleIcon(selectedPedido);
-                  const moduleIconColorClass = getPedidoModuleIconColorClass(selectedPedido.type);
+                  const moduleColor = getPedidoModuleColor(selectedPedido.type);
+
+                  if (!ModuleIcon) return null;
 
                   return (
                     <div className="h-9 w-9 shrink-0 rounded-md border bg-muted flex items-center justify-center">
-                      <ModuleIcon className={`h-5 w-5 ${moduleIconColorClass}`} />
+                      <ModuleIcon className="h-5 w-5" style={{ color: moduleColor }} />
                     </div>
                   );
                 })()}
