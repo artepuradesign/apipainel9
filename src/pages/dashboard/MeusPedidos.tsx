@@ -694,7 +694,7 @@ const MeusPedidos = () => {
                     <span className="font-mono font-bold text-sm">{t.order} #{p.id}</span>
                     <Badge variant="outline" className={getTypeBadgeClass(p.type)}>
                       {p.type === 'dominio-com' || p.type === 'dominio-com-br' ? <Globe className="h-3 w-3 mr-1" /> : p.type === 'vps-6' ? <Server className="h-3 w-3 mr-1" /> : <FileText className="h-3 w-3 mr-1" />}
-                      {getTypeLabel(p.type)}
+                      {getTypeLabel(p)}
                     </Badge>
                     <Badge className={statusBadgeColors[p.status] || 'bg-muted'}>
                       {t.status[p.status] || p.status}
