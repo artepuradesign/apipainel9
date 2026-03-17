@@ -495,8 +495,28 @@ const MeusPedidos = () => {
           setSelectedPedido({ ...pedido, ...p });
           setShowModal(true);
         }
-      } else {
+      } else if (pedido.type === 'dominio-com') {
         const res = await sistemasDominioComService.getById(pedido.id);
+        if (res.success && res.data) {
+          const p = res.data;
+          const mappedStatus = mapModuleStatusToUnified('dominio-com', p.status as ModuleWorkflowStatus);
+          const statusTimestamp = p.updated_at || p.created_at;
+          setSelectedPedido({
+            ...pedido,
+            nome_solicitante: p.nome_solicitante,
+            dominio_completo: p.dominio_completo,
+            preco_pago: p.valor_cobrado,
+            status: mappedStatus,
+            created_at: p.created_at,
+            realizado_at: p.created_at,
+            pagamento_confirmado_at: p.status === 'cancelado' ? null : p.created_at,
+            em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
+            entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
+          });
+          setShowModal(true);
+        }
+      } else if (pedido.type === 'dominio-com-br') {
+        const res = await sistemasDominioComBrService.getById(pedido.id);
         if (res.success && res.data) {
           const p = res.data;
           const isCanceled = p.status === 'cancelado';
@@ -509,6 +529,29 @@ const MeusPedidos = () => {
             created_at: p.created_at,
             realizado_at: p.created_at,
             pagamento_confirmado_at: isCanceled ? null : p.created_at,
+            em_confeccao_at: null,
+            entregue_at: null,
+          });
+          setShowModal(true);
+        }
+      } else {
+        const res = await sistemasHospedagemVps6Service.getById(pedido.id);
+        if (res.success && res.data) {
+          const p = res.data;
+          const mappedStatus = mapModuleStatusToUnified('vps-6', p.status as ModuleWorkflowStatus);
+          const statusTimestamp = p.updated_at || p.created_at;
+          setSelectedPedido({
+            ...pedido,
+            nome_solicitante: p.nome_solicitante,
+            nome_instancia: p.nome_instancia,
+            ip_vps: p.ip_vps,
+            preco_pago: p.valor_cobrado,
+            status: mappedStatus,
+            created_at: p.created_at,
+            realizado_at: p.created_at,
+            pagamento_confirmado_at: p.status === 'cancelado' ? null : p.created_at,
+            em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
+            entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
           });
           setShowModal(true);
         }
