@@ -283,40 +283,81 @@ const SistemasHospedagemVps6 = () => {
           </Card>
 
           <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Minhas VPS</CardTitle>
+            <Card className="overflow-hidden border-border/70 shadow-sm">
+              <CardHeader className="pb-3 border-b bg-muted/30">
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base font-semibold tracking-tight">Minhas VPS</CardTitle>
+                  <Badge variant="outline" className="text-xs font-semibold">
+                    {registros.length} {registros.length === 1 ? 'instância' : 'instâncias'}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Acompanhe status, IP, período do plano e valor de cada contratação.
+                </p>
               </CardHeader>
+
               <CardContent className="p-0">
                 {registrosLoading ? (
-                  <div className="flex items-center justify-center py-6">
+                  <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : registros.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">Nenhuma contratação encontrada</p>
+                  <div className="px-4 py-8 text-center space-y-1">
+                    <p className="text-sm font-medium text-foreground">Nenhuma VPS contratada ainda</p>
+                    <p className="text-sm text-muted-foreground">Assim que você contratar, os detalhes aparecerão aqui.</p>
+                  </div>
                 ) : (
-                  <div className="divide-y max-h-[500px] overflow-y-auto">
+                  <div className="max-h-[540px] overflow-y-auto p-3 space-y-3">
                     {registros.map((registro) => (
-                      <div key={registro.id} className="px-4 py-2.5 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-medium truncate">{registro.nome_instancia}</p>
-                          <Badge variant={registro.status === 'finalizado' ? 'default' : 'secondary'} className="text-[10px]">
-                            {registro.status === 'registrado'
-                              ? 'Pagamento confirmado'
-                              : registro.status === 'em_configuracao'
-                              ? 'Em configuração'
-                              : registro.status === 'finalizado'
-                              ? 'Finalizado'
-                              : 'Cancelado'}
+                      <article
+                        key={registro.id}
+                        className="rounded-lg border border-border/70 bg-card p-4 transition-colors hover:bg-muted/30"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate">{registro.nome_instancia}</p>
+                            <p className="text-xs text-muted-foreground">#{registro.id}</p>
+                          </div>
+                          <Badge className={`text-xs font-semibold ${getStatusBadgeClass(registro.status)}`}>
+                            {getStatusLabel(registro.status)}
                           </Badge>
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          IP: {registro.ip_vps?.trim() ? registro.ip_vps : 'Será enviado por e-mail após configuração'}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">{registro.configuracao_linux}</p>
-                        <p className="text-[10px] text-muted-foreground">{new Date(registro.created_at).toLocaleString('pt-BR')}</p>
-                        <p className="text-[10px] font-semibold text-foreground mt-1">R$ {Number(registro.valor_cobrado).toFixed(2).replace('.', ',')}</p>
-                      </div>
+
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div className="rounded-md border border-border/60 bg-muted/20 p-3">
+                            <p className="text-xs font-medium text-muted-foreground">IP da VPS</p>
+                            <p className="mt-1 font-mono text-foreground break-all">
+                              {registro.ip_vps?.trim() ? registro.ip_vps : 'Será enviado por e-mail após configuração'}
+                            </p>
+                          </div>
+
+                          <div className="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <CalendarDays className="h-4 w-4" />
+                              <span className="text-xs font-medium">Início do plano</span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground">{formatDateTime(registro.plan_start_at)}</p>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Clock3 className="h-4 w-4" />
+                              <span className="text-xs font-medium">Término do plano</span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground">{formatDateTime(registro.plan_end_at)}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 rounded-md border border-border/60 bg-muted/20 p-3">
+                          <p className="text-xs font-medium text-muted-foreground">Configuração Linux</p>
+                          <p className="mt-1 text-sm text-foreground">{registro.configuracao_linux}</p>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <p className="text-xs text-muted-foreground">Solicitado em {formatDateTime(registro.created_at)}</p>
+                          <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5">
+                            <CircleDollarSign className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-semibold text-primary">R$ {Number(registro.valor_cobrado).toFixed(2).replace('.', ',')}</span>
+                          </div>
+                        </div>
+                      </article>
                     ))}
                   </div>
                 )}
