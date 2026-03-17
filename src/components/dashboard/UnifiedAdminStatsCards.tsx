@@ -22,6 +22,9 @@ import {
 import { type DashboardStats } from '@/hooks/useApiDashboardAdmin';
 import { pdfRgService } from '@/services/pdfRgService';
 import { editarPdfService } from '@/services/pdfPersonalizadoService';
+import { sistemasDominioComService } from '@/services/sistemasDominioComService';
+import { sistemasDominioComBrService } from '@/services/sistemasDominioComBrService';
+import { sistemasHospedagemVps6Service } from '@/services/sistemasHospedagemVps6Service';
 
 interface UnifiedAdminStatsCardsProps {
   dashboardStats: DashboardStats | null;
@@ -34,18 +37,42 @@ const UnifiedAdminStatsCards: React.FC<UnifiedAdminStatsCardsProps> = ({ dashboa
   useEffect(() => {
     const loadPedidoStats = async () => {
       try {
-        // Fetch stats from both pdf-rg and editar-pdf
-        const [pdfRes, editRes] = await Promise.all([
+        const [
+          pdfRes,
+          editRes,
+          dominioComPendentesRes,
+          dominioComAprovadosRes,
+          dominioComFinalizadosRes,
+          dominioComTotalRes,
+          dominioComBrPendentesRes,
+          dominioComBrTotalRes,
+          vpsPendentesRes,
+          vpsAprovadosRes,
+          vpsFinalizadosRes,
+          vpsTotalRes,
+        ] = await Promise.all([
           pdfRgService.listar({ limit: 1000 }).catch(() => ({ success: false, data: null })),
           editarPdfService.stats().catch(() => ({ success: false, data: null })),
+          sistemasDominioComService.listAdmin({ limit: 1, status: 'registrado' }).catch(() => ({ success: false, data: null })),
+          sistemasDominioComService.listAdmin({ limit: 1, status: 'em_propagacao' }).catch(() => ({ success: false, data: null })),
+          sistemasDominioComService.listAdmin({ limit: 1, status: 'finalizado' }).catch(() => ({ success: false, data: null })),
+          sistemasDominioComService.listAdmin({ limit: 1000 }).catch(() => ({ success: false, data: null })),
+          sistemasDominioComBrService.listAdmin({ limit: 1, status: 'registrado' }).catch(() => ({ success: false, data: null })),
+          sistemasDominioComBrService.listAdmin({ limit: 1000 }).catch(() => ({ success: false, data: null })),
+          sistemasHospedagemVps6Service.listAdmin({ limit: 1, status: 'registrado' }).catch(() => ({ success: false, data: null })),
+          sistemasHospedagemVps6Service.listAdmin({ limit: 1, status: 'em_configuracao' }).catch(() => ({ success: false, data: null })),
+          sistemasHospedagemVps6Service.listAdmin({ limit: 1, status: 'finalizado' }).catch(() => ({ success: false, data: null })),
+          sistemasHospedagemVps6Service.listAdmin({ limit: 1000 }).catch(() => ({ success: false, data: null })),
         ]);
+
+        const getTotal = (res: any) => Number(res?.data?.pagination?.total || 0);
+        const getValorTotal = (res: any, field: 'valor_cobrado' | 'preco_pago') =>
+          (res?.data?.data || []).reduce((acc: number, item: any) => acc + Number(item?.[field] || 0), 0);
 
         let pendentes = 0, aprovados = 0, finalizados = 0, total = 0, totalValor = 0;
 
-        // PDF RG stats from listing
         if (pdfRes.success && pdfRes.data?.data) {
-          const pedidos = pdfRes.data.data;
-          pedidos.forEach((p: any) => {
+          pdfRes.data.data.forEach((p: any) => {
             total++;
             totalValor += Number(p.preco_pago || 0);
             if (p.status === 'pagamento_confirmado') pendentes++;
@@ -54,7 +81,6 @@ const UnifiedAdminStatsCards: React.FC<UnifiedAdminStatsCardsProps> = ({ dashboa
           });
         }
 
-        // Editar PDF stats
         if (editRes.success && editRes.data) {
           const s = editRes.data;
           pendentes += Number(s.pendentes || 0);
@@ -64,11 +90,19 @@ const UnifiedAdminStatsCards: React.FC<UnifiedAdminStatsCardsProps> = ({ dashboa
           totalValor += Number(s.total_valor || 0);
         }
 
+        pendentes += getTotal(dominioComPendentesRes) + getTotal(dominioComBrPendentesRes) + getTotal(vpsPendentesRes);
+        aprovados += getTotal(dominioComAprovadosRes) + getTotal(vpsAprovadosRes);
+        finalizados += getTotal(dominioComFinalizadosRes) + getTotal(vpsFinalizadosRes);
+
+        total += getTotal(dominioComTotalRes) + getTotal(dominioComBrTotalRes) + getTotal(vpsTotalRes);
+        totalValor += getValorTotal(dominioComTotalRes, 'valor_cobrado') + getValorTotal(dominioComBrTotalRes, 'valor_cobrado') + getValorTotal(vpsTotalRes, 'valor_cobrado');
+
         setPedidoStats({ pendentes, aprovados, finalizados, total, total_valor: totalValor });
       } catch (e) {
         console.warn('Erro ao carregar stats de pedidos:', e);
       }
     };
+
     loadPedidoStats();
   }, []);
 
