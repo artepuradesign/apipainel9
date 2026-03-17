@@ -210,6 +210,9 @@ type UnifiedPedido = {
   dominio_completo?: string;
   nome_instancia?: string;
   ip_vps?: string;
+  duracao_meses?: number;
+  plan_start_at?: string | null;
+  plan_end_at?: string | null;
 };
 
 const MeusPedidos = () => {
