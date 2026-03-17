@@ -2,8 +2,8 @@
 require_once __DIR__ . '/BaseModel.php';
 require_once __DIR__ . '/../services/NotificationService.php';
 
-class SistemasHospedagemVps6 extends BaseModel {
-    protected $table = 'sistemas_hospedagem_vps_6';
+class SistemasHospedagemVps1Mes extends BaseModel {
+    protected $table = 'sistemas_hospedagem_vps_1_mes';
 
     public function __construct($db) {
         parent::__construct($db);
