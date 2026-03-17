@@ -524,8 +524,8 @@ const AdminPedidos = () => {
         body: JSON.stringify({
           user_id: userId,
           type: 'pedido_status',
-          title: `${typeLabel} #${pedidoId} - ${statusLabels[newStatus]}`,
-          message: `Seu pedido ${typeLabel} #${pedidoId} teve o status atualizado para: ${statusLabels[newStatus]}.${newStatus === 'entregue' ? ' O arquivo PDF está disponível para download.' : ''}`,
+          title: `${typeLabel} #${pedidoId} - ${getStatusLabelByType(pedidoType as UnifiedPedido['type'], newStatus)}`,
+          message: `Seu pedido ${typeLabel} #${pedidoId} teve o status atualizado para: ${getStatusLabelByType(pedidoType as UnifiedPedido['type'], newStatus)}.${newStatus === 'entregue' ? ' O arquivo PDF está disponível para download.' : ''}`, 
           priority: newStatus === 'entregue' ? 'high' : 'medium',
         }),
       });
