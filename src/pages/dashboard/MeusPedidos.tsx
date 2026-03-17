@@ -726,6 +726,14 @@ const MeusPedidos = () => {
                         <p>{t.value}: <span className="text-foreground font-medium">R$ {Number(p.preco_pago || 0).toFixed(2)}</span></p>
                         {p.descricao_alteracoes && <p className="md:col-span-2 truncate max-w-md">{t.changes}: <span className="text-foreground">{p.descricao_alteracoes}</span></p>}
                       </>
+                    ) : p.type === 'vps-6' ? (
+                      <>
+                        {p.nome_instancia && <p>Instância: <span className="text-foreground">{p.nome_instancia}</span></p>}
+                        {p.ip_vps && <p>IP: <span className="text-foreground font-mono">{p.ip_vps}</span></p>}
+                        <p>Início do plano: <span className="text-foreground">{formatFullDate(p.plan_start_at || null) || '—'}</span></p>
+                        <p>Término do plano: <span className="text-foreground">{formatFullDate(p.plan_end_at || null) || '—'}</span></p>
+                        <p>{t.value}: <span className="text-foreground font-medium">R$ {Number(p.preco_pago || 0).toFixed(2)}</span></p>
+                      </>
                     ) : (
                       <>
                         {p.nome_solicitante && <p>{t.requester}: <span className="text-foreground">{p.nome_solicitante}</span></p>}
