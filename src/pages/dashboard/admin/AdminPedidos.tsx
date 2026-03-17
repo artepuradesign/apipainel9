@@ -52,15 +52,25 @@ type ModuleWorkflowStatus = 'registrado' | 'em_configuracao' | 'em_propagacao' |
 const getStepLabelByType = (pedidoType: UnifiedPedido['type'], step: ActivePedidoStatus) => {
   if (step === 'em_confeccao') {
     if (pedidoType === 'vps-6') return 'Em Configuração';
-    if (pedidoType === 'dominio-com') return 'Em Propagação';
+    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'Propagar Domínio';
     return statusLabels[step];
   }
 
-  if (step === 'entregue' && (pedidoType === 'vps-6' || pedidoType === 'dominio-com')) {
-    return 'Finalizado';
+  if (step === 'entregue') {
+    if (pedidoType === 'vps-6') return 'Finalizado';
+    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'Domínio Propagado';
   }
 
   return statusLabels[step];
+};
+
+const getStatusLabelByType = (pedidoType: UnifiedPedido['type'], status: PdfRgStatus): string => {
+  if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') {
+    if (status === 'em_confeccao') return 'Propagar Domínio';
+    if (status === 'entregue') return 'Domínio Propagado';
+  }
+
+  return statusLabels[status] || status;
 };
 
 const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: ModuleWorkflowStatus): PdfRgStatus => {
