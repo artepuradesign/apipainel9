@@ -33,6 +33,7 @@ const textByLocale: Record<Locale, any> = {
       pagamento_confirmado: 'Pagamento Confirmado',
       em_confeccao: 'Em Confecção',
       entregue: 'Entregue',
+      vencido: 'Vencido',
       cancelado: 'Cancelado',
     },
     canceledAudit: 'Pedido cancelado e mantido no histórico para auditoria.',
