@@ -925,6 +925,25 @@ const AdminPedidos = () => {
     if (pedido.type === 'dominio-com-br') return 'DOMÍNIO .COM.BR';
     return getVpsLabel(pedido);
   };
+
+  const getPedidoModuleIcon = (pedido: Pick<UnifiedPedido, 'type'>): React.ElementType => {
+    if (pedido.type === 'pdf-personalizado') return FileEdit;
+    if (pedido.type === 'pdf-rg') return Package;
+
+    const modulePathByType: Partial<Record<UnifiedPedido['type'], string>> = {
+      'dominio-com': '/dashboard/sistemas-dominio-com',
+      'dominio-com-br': '/dashboard/sistemas-dominio-com-br',
+      'vps-6': '/dashboard/sistemas-hospedagem-vps-6',
+    };
+
+    const modulePath = modulePathByType[pedido.type];
+    const configuredModule = modulePath ? serviceModules.find((module) => module.path === modulePath) : null;
+
+    if (configuredModule?.icon) return configuredModule.icon;
+    if (pedido.type === 'vps-6') return Server;
+    return Globe;
+  };
+
   const canCancelPedido = (status: PdfRgStatus) => !['entregue', 'cancelado'].includes(status);
 
   const handleCancelPedido = async (pedido: UnifiedPedido | null) => {
