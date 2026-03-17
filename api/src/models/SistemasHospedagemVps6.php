@@ -125,6 +125,14 @@ class SistemasHospedagemVps6 extends BaseModel {
             }
         }
 
+        $currentStmt = $this->db->prepare("SELECT user_id, status FROM {$this->table} WHERE id = ? LIMIT 1");
+        $currentStmt->execute([$id]);
+        $currentRow = $currentStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$currentRow) {
+            throw new Exception('Pedido não encontrado');
+        }
+
         $fields = ['status = ?', 'updated_at = NOW()'];
         $params = [$status];
 
@@ -141,7 +149,7 @@ class SistemasHospedagemVps6 extends BaseModel {
         $stmt->execute($params);
 
         $rowStmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ?
              LIMIT 1"
@@ -151,6 +159,26 @@ class SistemasHospedagemVps6 extends BaseModel {
 
         if (!$row) {
             throw new Exception('Pedido não encontrado');
+        }
+
+        if ((int)($row['user_id'] ?? 0) > 0 && ($currentRow['status'] ?? '') !== ($row['status'] ?? '')) {
+            $statusLabelMap = [
+                'registrado' => 'Registrado',
+                'em_configuracao' => 'Em Configuração',
+                'finalizado' => 'Finalizado',
+            ];
+            $statusLabel = $statusLabelMap[$row['status']] ?? $row['status'];
+
+            $notificationService = new NotificationService($this->db);
+            $notificationService->createNotification(
+                (int)$row['user_id'],
+                'pedido_status',
+                "Pedido VPS #{$id} atualizado",
+                "O status do seu pedido VPS foi alterado para: {$statusLabel}.",
+                '/dashboard/meus-pedidos',
+                'Ver pedidos',
+                $row['status'] === 'finalizado' ? 'high' : 'medium'
+            );
         }
 
         return $row;
