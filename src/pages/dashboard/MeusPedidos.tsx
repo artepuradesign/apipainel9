@@ -750,7 +750,7 @@ const MeusPedidos = () => {
                       {getTypeLabel(p)}
                     </Badge>
                     <Badge className={statusBadgeColors[p.status] || 'bg-muted'}>
-                      {t.status[p.status] || p.status}
+                      {getStatusLabel(p, p.status)}
                     </Badge>
                   </div>
                   <span className="text-xs text-muted-foreground">{formatFullDate(p.created_at)}</span>
