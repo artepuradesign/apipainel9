@@ -1199,12 +1199,12 @@ const AdminPedidos = () => {
           <DialogHeader>
             <div className="flex items-center justify-between gap-2 pr-8">
               <DialogTitle className="flex items-center gap-2">
-                <Badge variant="outline" className={selectedPedido?.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30' : selectedPedido?.type === 'dominio-com' || selectedPedido?.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : selectedPedido?.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30' : 'bg-sky-500/10 text-sky-600 border-sky-500/30'}>
+                <Badge variant="outline" className={selectedPedido?.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30 inline-flex items-center' : selectedPedido?.type === 'dominio-com' || selectedPedido?.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 inline-flex items-center' : selectedPedido?.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30 inline-flex items-center' : 'bg-sky-500/10 text-sky-600 border-sky-500/30 inline-flex items-center'}>
                   {selectedPedido && (() => {
                     const ModuleIcon = getPedidoModuleIcon(selectedPedido);
-                    return <ModuleIcon className="h-3 w-3 mr-1" />;
+                    return <ModuleIcon className="h-3.5 w-3.5 shrink-0" />;
                   })()}
-                  {selectedPedido ? typeLabel(selectedPedido) : ''}
+                  <span className="ml-1">{selectedPedido ? typeLabel(selectedPedido) : ''}</span>
                 </Badge>
                 Pedido #{selectedPedido?.id}
               </DialogTitle>
