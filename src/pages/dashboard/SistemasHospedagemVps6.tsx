@@ -206,7 +206,7 @@ const SistemasHospedagemVps6 = () => {
           icon={<Server className="h-5 w-5" />}
         />
 
-        <div className="mt-4 md:mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 md:gap-6 lg:gap-8">
+        <div className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] gap-4 md:gap-6 lg:gap-8">
           <Card className="w-full">
             <CardHeader className="pb-4">
               <div className="relative bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 dark:from-gray-800/50 dark:via-gray-800 dark:to-blue-900/20 rounded-lg border border-blue-100/50 dark:border-blue-800/30 shadow-sm transition-all duration-300">
@@ -217,18 +217,18 @@ const SistemasHospedagemVps6 = () => {
                     </Badge>
                   </div>
                 )}
-                <div className="relative p-3.5 md:p-4">
+                <div className="relative p-4 md:p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div className="w-1 h-10 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full flex-shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Plano Ativo</p>
-                        <h3 className="text-sm md:text-base font-bold text-foreground truncate">{userPlan}</h3>
+                        <p className="text-xs md:text-sm font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Plano Ativo</p>
+                        <h3 className="text-base md:text-lg font-bold text-foreground truncate">{userPlan}</h3>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                       {hasDiscount && (
-                        <span className="text-[10px] md:text-xs text-muted-foreground line-through">R$ {modulePrice.toFixed(2)}</span>
+                        <span className="text-xs text-muted-foreground line-through">R$ {modulePrice.toFixed(2)}</span>
                       )}
                       <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent whitespace-nowrap">
                         R$ {finalPrice.toFixed(2)}
@@ -241,7 +241,7 @@ const SistemasHospedagemVps6 = () => {
 
             <CardContent className="space-y-4">
               <div className="grid gap-1.5">
-                <Label htmlFor="nomeSolicitante">Nome do Solicitante *</Label>
+                <Label htmlFor="nomeSolicitante" className="text-sm font-medium">Nome do Solicitante *</Label>
                 <Input
                   id="nomeSolicitante"
                   placeholder="Seu nome completo"
@@ -251,7 +251,7 @@ const SistemasHospedagemVps6 = () => {
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="nomeInstancia">Nome da Instância</Label>
+                <Label htmlFor="nomeInstancia" className="text-sm font-medium">Nome da Instância</Label>
                 <Input
                   id="nomeInstancia"
                   placeholder="ex: vps-cliente-01"
@@ -260,7 +260,7 @@ const SistemasHospedagemVps6 = () => {
                 />
               </div>
 
-              <div className="rounded-md border border-border p-3 text-sm space-y-1">
+              <div className="rounded-md border border-border p-3 text-sm space-y-1.5">
                 <div className="flex items-center gap-2 font-medium">
                   <ShieldCheck className="h-4 w-4 text-primary" />
                   Configuração Linux padrão inclusa
@@ -274,7 +274,7 @@ const SistemasHospedagemVps6 = () => {
               </Button>
 
               {!hasSufficientBalance && (
-                <div className="flex items-center gap-2 text-destructive text-xs">
+                <div className="flex items-center gap-2 text-destructive text-sm">
                   <AlertCircle className="h-4 w-4" />
                   <span>Saldo insuficiente. Gere o PIX para pagar R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
                 </div>
@@ -286,12 +286,12 @@ const SistemasHospedagemVps6 = () => {
             <Card className="overflow-hidden border-border/70 shadow-sm">
               <CardHeader className="pb-3 border-b bg-muted/30">
                 <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base font-semibold tracking-tight">Minhas VPS</CardTitle>
+                  <CardTitle className="text-lg md:text-xl font-semibold tracking-tight">Minhas VPS</CardTitle>
                   <Badge variant="outline" className="text-xs font-semibold">
                     {registros.length} {registros.length === 1 ? 'instância' : 'instâncias'}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm leading-relaxed text-muted-foreground">
                   Acompanhe status, IP, período do plano e valor de cada contratação.
                 </p>
               </CardHeader>
@@ -303,7 +303,7 @@ const SistemasHospedagemVps6 = () => {
                   </div>
                 ) : registros.length === 0 ? (
                   <div className="px-4 py-8 text-center space-y-1">
-                    <p className="text-sm font-medium text-foreground">Nenhuma VPS contratada ainda</p>
+                    <p className="text-base font-medium text-foreground">Nenhuma VPS contratada ainda</p>
                     <p className="text-sm text-muted-foreground">Assim que você contratar, os detalhes aparecerão aqui.</p>
                   </div>
                 ) : (
@@ -315,8 +315,8 @@ const SistemasHospedagemVps6 = () => {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate">{registro.nome_instancia}</p>
-                            <p className="text-xs text-muted-foreground">#{registro.id}</p>
+                            <p className="text-base md:text-sm font-semibold text-foreground truncate">{registro.nome_instancia}</p>
+                            <p className="text-sm md:text-xs text-muted-foreground">#{registro.id}</p>
                           </div>
                           <Badge className={`text-xs font-semibold ${getStatusBadgeClass(registro.status)}`}>
                             {getStatusLabel(registro.status)}
@@ -351,7 +351,7 @@ const SistemasHospedagemVps6 = () => {
                         </div>
 
                         <div className="mt-3 flex items-center justify-between gap-3">
-                          <p className="text-xs text-muted-foreground">Solicitado em {formatDateTime(registro.created_at)}</p>
+                          <p className="text-sm md:text-xs text-muted-foreground">Solicitado em {formatDateTime(registro.created_at)}</p>
                           <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5">
                             <CircleDollarSign className="h-4 w-4 text-primary" />
                             <span className="text-sm font-semibold text-primary">R$ {Number(registro.valor_cobrado).toFixed(2).replace('.', ',')}</span>
