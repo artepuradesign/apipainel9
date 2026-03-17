@@ -721,11 +721,11 @@ const MeusPedidos = () => {
         toast.success(t.canceledSuccess);
         setPedidos((prev) => prev.map((item) => (
           item.type === pedido.type && item.id === pedido.id
-            ? { ...item, status: 'cancelado' as PdfRgStatus }
+            ? { ...item, status: 'cancelado' as UnifiedStatus }
             : item
         )));
         if (selectedPedido && selectedPedido.type === pedido.type && selectedPedido.id === pedido.id) {
-          setSelectedPedido({ ...selectedPedido, status: 'cancelado' as PdfRgStatus });
+          setSelectedPedido({ ...selectedPedido, status: 'cancelado' as UnifiedStatus });
         }
       } else {
         toast.error(res.error || t.cancelError);
