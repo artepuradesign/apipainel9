@@ -193,7 +193,7 @@ const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: Mod
 type UnifiedPedido = {
   type: 'pdf-rg' | 'pdf-personalizado' | 'dominio-com' | 'dominio-com-br' | 'vps-6';
   id: number;
-  status: PdfRgStatus;
+  status: UnifiedStatus;
   preco_pago: number | string;
   created_at: string;
   realizado_at: string | null;
