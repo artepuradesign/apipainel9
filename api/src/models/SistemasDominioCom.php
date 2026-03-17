@@ -8,6 +8,7 @@ class SistemasDominioCom extends BaseModel {
     public function __construct($db) {
         parent::__construct($db);
         $this->ensureStatusEnum();
+        $this->ensurePlanDateColumns();
     }
 
     public function normalizeDomainName(string $input): string {
@@ -38,8 +39,10 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function findByIdForUser(int $id, int $userId): ?array {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ? AND user_id = ?
              LIMIT 1"
@@ -63,8 +66,10 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function listByUser(int $userId, int $limit = 50, int $offset = 0): array {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE user_id = ?
              ORDER BY id DESC
@@ -75,6 +80,8 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function countByUser(int $userId): int {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM {$this->table} WHERE user_id = ?");
         $stmt->execute([$userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -82,10 +89,12 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function listForAdmin(?string $status, ?string $search, int $limit = 50, int $offset = 0): array {
+        $this->expireFinishedRecords();
+
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
@@ -101,7 +110,7 @@ class SistemasDominioCom extends BaseModel {
         $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              {$whereSql}
              ORDER BY id DESC
@@ -116,10 +125,12 @@ class SistemasDominioCom extends BaseModel {
     }
 
     public function countForAdmin(?string $status, ?string $search): int {
+        $this->expireFinishedRecords();
+
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
