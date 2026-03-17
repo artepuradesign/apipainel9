@@ -281,7 +281,7 @@ class SistemasHospedagemVps6 extends BaseModel {
             $this->syncUserWalletBalance($userId, 'main', $novoSaldoCarteira);
             $this->syncUserWalletBalance($userId, 'plan', $novoSaldoPlano);
 
-            $description = "Hospedagem VPS 6 meses (IP pendente de configuração)";
+            $description = "Hospedagem VPS {$duracaoMeses}
 
             if ($debitoPlano > 0) {
                 $this->insertWalletTransaction(
