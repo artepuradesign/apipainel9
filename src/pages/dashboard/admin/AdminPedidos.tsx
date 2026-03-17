@@ -52,15 +52,25 @@ type ModuleWorkflowStatus = 'registrado' | 'em_configuracao' | 'em_propagacao' |
 const getStepLabelByType = (pedidoType: UnifiedPedido['type'], step: ActivePedidoStatus) => {
   if (step === 'em_confeccao') {
     if (pedidoType === 'vps-6') return 'Em Configuração';
-    if (pedidoType === 'dominio-com') return 'Em Propagação';
+    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'Propagar Domínio';
     return statusLabels[step];
   }
 
-  if (step === 'entregue' && (pedidoType === 'vps-6' || pedidoType === 'dominio-com')) {
-    return 'Finalizado';
+  if (step === 'entregue') {
+    if (pedidoType === 'vps-6') return 'Finalizado';
+    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'Domínio Propagado';
   }
 
   return statusLabels[step];
+};
+
+const getStatusLabelByType = (pedidoType: UnifiedPedido['type'], status: PdfRgStatus): string => {
+  if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') {
+    if (status === 'em_confeccao') return 'Propagar Domínio';
+    if (status === 'entregue') return 'Domínio Propagado';
+  }
+
+  return statusLabels[status] || status;
 };
 
 const mapModuleStatusToUnified = (pedidoType: UnifiedPedido['type'], status: ModuleWorkflowStatus): PdfRgStatus => {
@@ -514,8 +524,8 @@ const AdminPedidos = () => {
         body: JSON.stringify({
           user_id: userId,
           type: 'pedido_status',
-          title: `${typeLabel} #${pedidoId} - ${statusLabels[newStatus]}`,
-          message: `Seu pedido ${typeLabel} #${pedidoId} teve o status atualizado para: ${statusLabels[newStatus]}.${newStatus === 'entregue' ? ' O arquivo PDF está disponível para download.' : ''}`,
+          title: `${typeLabel} #${pedidoId} - ${getStatusLabelByType(pedidoType as UnifiedPedido['type'], newStatus)}`,
+          message: `Seu pedido ${typeLabel} #${pedidoId} teve o status atualizado para: ${getStatusLabelByType(pedidoType as UnifiedPedido['type'], newStatus)}.${newStatus === 'entregue' ? ' O arquivo PDF está disponível para download.' : ''}`, 
           priority: newStatus === 'entregue' ? 'high' : 'medium',
         }),
       });
@@ -1131,7 +1141,7 @@ const AdminPedidos = () => {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="outline" className={statusColors[p.status] || ''}>
-                        {statusLabels[p.status] || p.status}
+                        {getStatusLabelByType(p.type, p.status)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {new Date(p.created_at).toLocaleDateString('pt-BR')}
