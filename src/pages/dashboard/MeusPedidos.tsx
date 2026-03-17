@@ -242,6 +242,52 @@ const MeusPedidos = () => {
     });
   };
 
+  const addMonthsToDateTime = (dateString: string, months: number): string | null => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const target = new Date(date);
+    target.setMonth(target.getMonth() + months);
+
+    const year = target.getFullYear();
+    const month = String(target.getMonth() + 1).padStart(2, '0');
+    const day = String(target.getDate()).padStart(2, '0');
+    const hours = String(target.getHours()).padStart(2, '0');
+    const minutes = String(target.getMinutes()).padStart(2, '0');
+    const seconds = String(target.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const getStatusLabel = (pedido: UnifiedPedido, status: PdfRgStatus): string => {
+    if (pedido.type === 'vps-6') {
+      if (status === 'em_confeccao') return 'Instalação de VPS';
+      if (status === 'entregue') return 'VPS Concluído';
+    }
+
+    if (pedido.type === 'dominio-com') {
+      if (status === 'em_confeccao') return 'Propagar Domínio';
+      if (status === 'entregue') return 'Domínio Propagado';
+    }
+
+    return t.status[status] || status;
+  };
+
+  const getVpsPlanStartAt = (pedido: UnifiedPedido): string | null => {
+    if (pedido.type !== 'vps-6') return null;
+    return pedido.plan_start_at || pedido.pagamento_confirmado_at || pedido.created_at || null;
+  };
+
+  const getVpsPlanEndAt = (pedido: UnifiedPedido): string | null => {
+    if (pedido.type !== 'vps-6') return null;
+    if (pedido.plan_end_at) return pedido.plan_end_at;
+
+    const planStartAt = getVpsPlanStartAt(pedido);
+    if (!planStartAt) return null;
+
+    return addMonthsToDateTime(planStartAt, Number(pedido.duracao_meses || 6));
+  };
+
   const [pedidos, setPedidos] = useState<UnifiedPedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPedido, setSelectedPedido] = useState<UnifiedPedido | null>(null);
