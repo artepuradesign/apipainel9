@@ -280,10 +280,13 @@ class SistemasDominioCom extends BaseModel {
                 $saldoUsado = 'plano';
             }
 
+            $planStartAt = date('Y-m-d H:i:s');
+            $planEndAt = date('Y-m-d H:i:s', strtotime('+12 months', strtotime($planStartAt)));
+
             $insertStmt = $this->db->prepare(
                 "INSERT INTO {$this->table}
-                (module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
+                (module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
             );
             $insertStmt->execute([
                 $moduleId,
@@ -291,78 +294,21 @@ class SistemasDominioCom extends BaseModel {
                 $nomeSolicitante,
                 $availability['dominio_nome'],
                 $availability['dominio_completo'],
+                $planStartAt,
+                $planEndAt,
                 $valorFinal,
                 $descontoValor,
                 $saldoUsado,
             ]);
 
             $registroId = (int)$this->db->lastInsertId();
-
-            $updateUserStmt = $this->db->prepare("UPDATE users SET saldo = ?, saldo_plano = ?, saldo_atualizado = 1, updated_at = NOW() WHERE id = ?");
-            $updateUserStmt->execute([$novoSaldoCarteira, $novoSaldoPlano, $userId]);
-
-            $this->syncUserWalletBalance($userId, 'main', $novoSaldoCarteira);
-            $this->syncUserWalletBalance($userId, 'plan', $novoSaldoPlano);
-
-            $description = "Registro domínio .COM: {$availability['dominio_completo']}";
-
-            if ($debitoPlano > 0) {
-                $this->insertWalletTransaction(
-                    $userId,
-                    'plan',
-                    -$debitoPlano,
-                    $saldoPlano,
-                    $novoSaldoPlano,
-                    $description,
-                    $registroId
-                );
-            }
-
-            if ($debitoCarteira > 0) {
-                $this->insertWalletTransaction(
-                    $userId,
-                    'main',
-                    -$debitoCarteira,
-                    $saldoCarteira,
-                    $novoSaldoCarteira,
-                    $description,
-                    $registroId
-                );
-            }
-
-            $consultationStmt = $this->db->prepare(
-                "INSERT INTO consultations
-                (user_id, module_type, document, cost, result_data, status, ip_address, user_agent, metadata, created_at, updated_at)
-                VALUES (?, 'sistemas_dominio_com', ?, ?, NULL, 'completed', ?, ?, ?, NOW(), NOW())"
-            );
-
-            $metadata = json_encode([
-                'source' => 'sistemas-dominio-com',
-                'module_id' => $moduleId,
-                'registro_id' => $registroId,
-                'dominio' => $availability['dominio_completo'],
-                'saldo_usado' => $saldoUsado,
-                'desconto_aplicado' => $descontoValor,
-                'preco_original' => $precoOriginal,
-                'valor_final' => $valorFinal,
-                'timestamp' => date('c'),
-            ], JSON_UNESCAPED_UNICODE);
-
-            $consultationStmt->execute([
-                $userId,
-                $availability['dominio_completo'],
-                $valorFinal,
-                $_SERVER['REMOTE_ADDR'] ?? null,
-                $_SERVER['HTTP_USER_AGENT'] ?? null,
-                $metadata,
-            ]);
-
-            $this->db->commit();
-
+...
             return [
                 'id' => $registroId,
                 'dominio_nome' => $availability['dominio_nome'],
                 'dominio_completo' => $availability['dominio_completo'],
+                'plan_start_at' => $planStartAt,
+                'plan_end_at' => $planEndAt,
                 'valor_cobrado' => $valorFinal,
                 'desconto_aplicado' => $descontoValor,
                 'saldo_usado' => $saldoUsado,
