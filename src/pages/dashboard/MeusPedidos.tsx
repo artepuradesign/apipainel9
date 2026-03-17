@@ -298,6 +298,21 @@ const MeusPedidos = () => {
     return addMonthsToDateTime(planStartAt, Number(pedido.duracao_meses || 6));
   };
 
+  const getDomainPlanStartAt = (pedido: UnifiedPedido): string | null => {
+    if (pedido.type !== 'dominio-com') return null;
+    return pedido.plan_start_at || pedido.pagamento_confirmado_at || pedido.created_at || null;
+  };
+
+  const getDomainPlanEndAt = (pedido: UnifiedPedido): string | null => {
+    if (pedido.type !== 'dominio-com') return null;
+    if (pedido.plan_end_at) return pedido.plan_end_at;
+
+    const planStartAt = getDomainPlanStartAt(pedido);
+    if (!planStartAt) return null;
+
+    return addMonthsToDateTime(planStartAt, 12);
+  };
+
   const [pedidos, setPedidos] = useState<UnifiedPedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPedido, setSelectedPedido] = useState<UnifiedPedido | null>(null);
@@ -305,12 +320,11 @@ const MeusPedidos = () => {
   const [cancelingPedidoKey, setCancelingPedidoKey] = useState<string | null>(null);
 
   const getStepTimestamp = (pedido: UnifiedPedido, step: ActivePedidoStatus): string | null => {
-    const map: Record<PdfRgStatus, string | null> = {
+    const map: Record<ActivePedidoStatus, string | null> = {
       realizado: pedido.realizado_at,
       pagamento_confirmado: pedido.pagamento_confirmado_at,
       em_confeccao: pedido.em_confeccao_at,
       entregue: pedido.entregue_at,
-      cancelado: null,
     };
     return map[step];
   };
