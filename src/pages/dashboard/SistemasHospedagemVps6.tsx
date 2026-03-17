@@ -206,8 +206,8 @@ const SistemasHospedagemVps6 = () => {
           icon={<Server className="h-5 w-5" />}
         />
 
-        <div className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] gap-4 md:gap-6 lg:gap-8">
-          <Card className="w-full">
+        <div className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-2 md:items-start gap-4 md:gap-6 lg:gap-8">
+          <Card className="w-full h-full">
             <CardHeader className="pb-4">
               <div className="relative bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 dark:from-gray-800/50 dark:via-gray-800 dark:to-blue-900/20 rounded-lg border border-blue-100/50 dark:border-blue-800/30 shadow-sm transition-all duration-300">
                 {hasDiscount && (
@@ -217,12 +217,12 @@ const SistemasHospedagemVps6 = () => {
                     </Badge>
                   </div>
                 )}
-                <div className="relative p-4 md:p-4">
+                <div className="relative p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div className="w-1 h-10 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full flex-shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-xs md:text-sm font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Plano Ativo</p>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Plano Ativo</p>
                         <h3 className="text-base md:text-lg font-bold text-foreground truncate">{userPlan}</h3>
                       </div>
                     </div>
@@ -274,7 +274,7 @@ const SistemasHospedagemVps6 = () => {
               </Button>
 
               {!hasSufficientBalance && (
-                <div className="flex items-center gap-2 text-destructive text-sm">
+                <div className="flex items-center gap-2 text-destructive text-sm leading-relaxed">
                   <AlertCircle className="h-4 w-4" />
                   <span>Saldo insuficiente. Gere o PIX para pagar R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
                 </div>
@@ -283,10 +283,10 @@ const SistemasHospedagemVps6 = () => {
           </Card>
 
           <div className="space-y-4">
-            <Card className="overflow-hidden border-border/70 shadow-sm">
+            <Card className="overflow-hidden border-border/70 shadow-sm h-full">
               <CardHeader className="pb-3 border-b bg-muted/30">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-lg md:text-xl font-semibold tracking-tight">Minhas VPS</CardTitle>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <CardTitle className="text-base md:text-lg font-semibold tracking-tight">Minhas VPS</CardTitle>
                   <Badge variant="outline" className="text-xs font-semibold">
                     {registros.length} {registros.length === 1 ? 'instância' : 'instâncias'}
                   </Badge>
@@ -315,15 +315,15 @@ const SistemasHospedagemVps6 = () => {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-base md:text-sm font-semibold text-foreground truncate">{registro.nome_instancia}</p>
-                            <p className="text-sm md:text-xs text-muted-foreground">#{registro.id}</p>
+                            <p className="text-sm md:text-base font-semibold text-foreground truncate">{registro.nome_instancia}</p>
+                            <p className="text-xs text-muted-foreground">#{registro.id}</p>
                           </div>
                           <Badge className={`text-xs font-semibold ${getStatusBadgeClass(registro.status)}`}>
                             {getStatusLabel(registro.status)}
                           </Badge>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-3 text-sm">
                           <div className="rounded-md border border-border/60 bg-muted/20 p-3">
                             <p className="text-xs font-medium text-muted-foreground">IP da VPS</p>
                             <p className="mt-1 font-mono text-foreground break-all">
@@ -350,8 +350,8 @@ const SistemasHospedagemVps6 = () => {
                           <p className="mt-1 text-sm text-foreground">{registro.configuracao_linux}</p>
                         </div>
 
-                        <div className="mt-3 flex items-center justify-between gap-3">
-                          <p className="text-sm md:text-xs text-muted-foreground">Solicitado em {formatDateTime(registro.created_at)}</p>
+                        <div className="mt-3 flex flex-col items-start gap-2">
+                          <p className="text-xs text-muted-foreground">Solicitado em {formatDateTime(registro.created_at)}</p>
                           <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1.5">
                             <CircleDollarSign className="h-4 w-4 text-primary" />
                             <span className="text-sm font-semibold text-primary">R$ {Number(registro.valor_cobrado).toFixed(2).replace('.', ',')}</span>
