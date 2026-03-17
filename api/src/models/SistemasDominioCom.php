@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/BaseModel.php';
+require_once __DIR__ . '/../services/NotificationService.php';
 
 class SistemasDominioCom extends BaseModel {
     protected $table = 'sistemas_dominio_com';
