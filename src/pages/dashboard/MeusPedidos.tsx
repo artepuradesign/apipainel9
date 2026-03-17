@@ -444,6 +444,9 @@ const MeusPedidos = () => {
             nome_solicitante: p.nome_solicitante,
             nome_instancia: p.nome_instancia,
             ip_vps: p.ip_vps,
+            duracao_meses: p.duracao_meses,
+            plan_start_at: p.plan_start_at,
+            plan_end_at: p.plan_end_at,
           });
         });
       }
