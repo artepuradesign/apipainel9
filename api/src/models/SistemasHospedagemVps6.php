@@ -12,6 +12,8 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function findByIdForUser(int $id, int $userId): ?array {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare(
             "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
@@ -24,6 +26,8 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function listByUser(int $userId, int $limit = 50, int $offset = 0): array {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare(
             "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
@@ -36,6 +40,8 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function countByUser(int $userId): int {
+        $this->expireFinishedRecords();
+
         $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM {$this->table} WHERE user_id = ?");
         $stmt->execute([$userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -43,10 +49,12 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function listForAdmin(?string $status, ?string $search, int $limit = 50, int $offset = 0): array {
+        $this->expireFinishedRecords();
+
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
@@ -78,10 +86,12 @@ class SistemasHospedagemVps6 extends BaseModel {
     }
 
     public function countForAdmin(?string $status, ?string $search): int {
+        $this->expireFinishedRecords();
+
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
