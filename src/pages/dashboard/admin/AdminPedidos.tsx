@@ -926,6 +926,20 @@ const AdminPedidos = () => {
     return getVpsLabel(pedido);
   };
 
+  const getPedidoTypeBadgeClass = (pedidoType: UnifiedPedido['type']) => {
+    if (pedidoType === 'pdf-personalizado') return 'bg-violet-500/10 text-violet-600 border-violet-500/30';
+    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'bg-amber-500/10 text-amber-600 border-amber-500/30';
+    if (pedidoType === 'vps-6') return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30';
+    return 'bg-sky-500/10 text-sky-600 border-sky-500/30';
+  };
+
+  const getPedidoModuleIconColorClass = (pedidoType: UnifiedPedido['type']) => {
+    if (pedidoType === 'pdf-personalizado') return 'text-violet-600';
+    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'text-amber-600';
+    if (pedidoType === 'vps-6') return 'text-cyan-600';
+    return 'text-sky-600';
+  };
+
   const getPedidoModuleIcon = (pedido: Pick<UnifiedPedido, 'type'>): React.ElementType => {
     if (pedido.type === 'pdf-personalizado') return FileEdit;
     if (pedido.type === 'pdf-rg') return Package;
