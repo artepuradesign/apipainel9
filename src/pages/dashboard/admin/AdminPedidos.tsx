@@ -998,29 +998,16 @@ const AdminPedidos = () => {
     return 'bg-sky-500/10 text-sky-600 border-sky-500/30';
   };
 
-  const getPedidoModuleIconColorClass = (pedidoType: UnifiedPedido['type']) => {
-    if (pedidoType === 'pdf-personalizado') return 'text-violet-600';
-    if (pedidoType === 'dominio-com' || pedidoType === 'dominio-com-br') return 'text-amber-600';
-    if (pedidoType === 'vps-6') return 'text-cyan-600';
-    return 'text-sky-600';
+  const getPedidoModuleIcon = (pedido: Pick<UnifiedPedido, 'type'>): React.ElementType | null => {
+    const iconName = moduleConfigsByType[pedido.type]?.icon;
+    if (!iconName) return null;
+
+    const iconsMap = LucideIcons as unknown as Record<string, React.ElementType>;
+    return iconsMap[iconName] || null;
   };
 
-  const getPedidoModuleIcon = (pedido: Pick<UnifiedPedido, 'type'>): React.ElementType => {
-    if (pedido.type === 'pdf-personalizado') return FileEdit;
-    if (pedido.type === 'pdf-rg') return Package;
-
-    const modulePathByType: Partial<Record<UnifiedPedido['type'], string>> = {
-      'dominio-com': '/dashboard/sistemas-dominio-com',
-      'dominio-com-br': '/dashboard/sistemas-dominio-com-br',
-      'vps-6': '/dashboard/sistemas-hospedagem-vps-6',
-    };
-
-    const modulePath = modulePathByType[pedido.type];
-    const configuredModule = modulePath ? serviceModules.find((module) => module.path === modulePath) : null;
-
-    if (configuredModule?.icon) return configuredModule.icon;
-    if (pedido.type === 'vps-6') return Server;
-    return Globe;
+  const getPedidoModuleColor = (pedidoType: UnifiedPedido['type']) => {
+    return moduleConfigsByType[pedidoType]?.color;
   };
 
   const canCancelPedido = (status: PdfRgStatus) => !['entregue', 'cancelado'].includes(status);
