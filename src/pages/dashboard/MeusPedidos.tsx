@@ -762,7 +762,7 @@ const MeusPedidos = () => {
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.order} #{selectedPedido?.id}</DialogTitle>
-            <DialogDescription>{selectedPedido ? getTypeLabel(selectedPedido.type) : t.orderDetails}</DialogDescription>
+            <DialogDescription>{selectedPedido ? getTypeLabel(selectedPedido) : t.orderDetails}</DialogDescription>
           </DialogHeader>
           {selectedPedido && (
             <div className="space-y-4 text-sm">
