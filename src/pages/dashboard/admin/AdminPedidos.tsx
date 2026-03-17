@@ -1141,7 +1141,7 @@ const AdminPedidos = () => {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="outline" className={statusColors[p.status] || ''}>
-                        {statusLabels[p.status] || p.status}
+                        {getStatusLabelByType(p.type, p.status)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {new Date(p.created_at).toLocaleDateString('pt-BR')}
