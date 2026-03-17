@@ -855,8 +855,8 @@ const MeusPedidos = () => {
                   <>
                     {selectedPedido.nome_instancia && <><span className="text-muted-foreground">Instância:</span><span>{selectedPedido.nome_instancia}</span></>}
                     {selectedPedido.ip_vps && <><span className="text-muted-foreground">IP:</span><span className="font-mono">{selectedPedido.ip_vps}</span></>}
-                    <><span className="text-muted-foreground">Início do plano:</span><span>{formatFullDate(selectedPedido.plan_start_at || null) || '—'}</span></>
-                    <><span className="text-muted-foreground">Término do plano:</span><span>{formatFullDate(selectedPedido.plan_end_at || null) || '—'}</span></>
+                    <><span className="text-muted-foreground">Início do plano:</span><span>{formatFullDate(getVpsPlanStartAt(selectedPedido)) || '—'}</span></>
+                    <><span className="text-muted-foreground">Término do plano:</span><span>{formatFullDate(getVpsPlanEndAt(selectedPedido)) || '—'}</span></>
                   </>
                 ) : (
                   <>

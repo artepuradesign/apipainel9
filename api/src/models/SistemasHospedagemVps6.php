@@ -133,7 +133,12 @@ class SistemasHospedagemVps6 extends BaseModel {
             throw new Exception('Pedido não encontrado');
         }
 
-        $fields = ['status = ?', 'updated_at = NOW()'];
+        $fields = [
+            'status = ?',
+            'plan_start_at = COALESCE(plan_start_at, created_at)',
+            'plan_end_at = COALESCE(plan_end_at, DATE_ADD(COALESCE(plan_start_at, created_at), INTERVAL duracao_meses MONTH))',
+            'updated_at = NOW()'
+        ];
         $params = [$status];
 
         if ($ipVps !== null) {
