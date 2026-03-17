@@ -1244,15 +1244,26 @@ const AdminPedidos = () => {
                       </div>
 
                       {selectedPedido.type === 'vps-6' && (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <Label htmlFor="workflow-ip" className="text-xs text-muted-foreground">IP para entrega da VPS</Label>
-                          <Input
-                            id="workflow-ip"
-                            placeholder="Ex.: 172.20.10.15"
-                            value={workflowIp}
-                            onChange={(e) => setWorkflowIp(e.target.value)}
-                            disabled={updatingStatus || cancelingPedido}
-                          />
+                          <div className="flex gap-2">
+                            <Input
+                              id="workflow-ip"
+                              placeholder="Ex.: 172.20.10.15"
+                              value={workflowIp}
+                              onChange={(e) => setWorkflowIp(e.target.value)}
+                              disabled={updatingStatus || cancelingPedido || savingWorkflowIp}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleSaveWorkflowIp}
+                              disabled={updatingStatus || cancelingPedido || savingWorkflowIp || !workflowIp.trim() || workflowIp.trim() === (selectedPedido.raw_vps?.ip_vps || '').trim()}
+                              className="shrink-0"
+                            >
+                              {savingWorkflowIp ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar IP'}
+                            </Button>
+                          </div>
                         </div>
                       )}
 
