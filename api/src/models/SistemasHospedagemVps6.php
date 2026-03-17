@@ -250,10 +250,13 @@ class SistemasHospedagemVps6 extends BaseModel {
 
             $ipVps = '';
 
+            $planStartAt = date('Y-m-d H:i:s');
+            $planEndAt = date('Y-m-d H:i:s', strtotime("+{$duracaoMeses} months", strtotime($planStartAt)));
+
             $insertStmt = $this->db->prepare(
                 "INSERT INTO {$this->table}
-                (module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
+                (module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
             );
             $insertStmt->execute([
                 $moduleId,
@@ -263,6 +266,8 @@ class SistemasHospedagemVps6 extends BaseModel {
                 $ipVps,
                 $configuracaoPadrao,
                 $duracaoMeses,
+                $planStartAt,
+                $planEndAt,
                 $valorFinal,
                 $descontoValor,
                 $saldoUsado,
