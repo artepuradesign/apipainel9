@@ -98,6 +98,12 @@ export const sistemasHospedagemVps6Service = {
     });
   },
 
+  async deleteByAdmin(id: number) {
+    return apiRequest<{ id: number; refunded_amount?: number }>(`/sistemas-hospedagem-vps-6/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   async updateStatusByAdmin(id: number, payload: { status: 'registrado' | 'em_configuracao' | 'finalizado'; ip_vps?: string }) {
     return apiRequest<SistemaHospedagemVps6Registro>(`/sistemas-hospedagem-vps-6/${id}/admin-status`, {
       method: 'POST',
