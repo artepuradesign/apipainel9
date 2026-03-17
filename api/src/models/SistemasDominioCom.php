@@ -302,7 +302,70 @@ class SistemasDominioCom extends BaseModel {
             ]);
 
             $registroId = (int)$this->db->lastInsertId();
-...
+
+            $updateUserStmt = $this->db->prepare("UPDATE users SET saldo = ?, saldo_plano = ?, saldo_atualizado = 1, updated_at = NOW() WHERE id = ?");
+            $updateUserStmt->execute([$novoSaldoCarteira, $novoSaldoPlano, $userId]);
+
+            $this->syncUserWalletBalance($userId, 'main', $novoSaldoCarteira);
+            $this->syncUserWalletBalance($userId, 'plan', $novoSaldoPlano);
+
+            $description = "Registro domínio .COM: {$availability['dominio_completo']}";
+
+            if ($debitoPlano > 0) {
+                $this->insertWalletTransaction(
+                    $userId,
+                    'plan',
+                    -$debitoPlano,
+                    $saldoPlano,
+                    $novoSaldoPlano,
+                    $description,
+                    $registroId
+                );
+            }
+
+            if ($debitoCarteira > 0) {
+                $this->insertWalletTransaction(
+                    $userId,
+                    'main',
+                    -$debitoCarteira,
+                    $saldoCarteira,
+                    $novoSaldoCarteira,
+                    $description,
+                    $registroId
+                );
+            }
+
+            $consultationStmt = $this->db->prepare(
+                "INSERT INTO consultations
+                (user_id, module_type, document, cost, result_data, status, ip_address, user_agent, metadata, created_at, updated_at)
+                VALUES (?, 'sistemas_dominio_com', ?, ?, NULL, 'completed', ?, ?, ?, NOW(), NOW())"
+            );
+
+            $metadata = json_encode([
+                'source' => 'sistemas-dominio-com',
+                'module_id' => $moduleId,
+                'registro_id' => $registroId,
+                'dominio' => $availability['dominio_completo'],
+                'plan_start_at' => $planStartAt,
+                'plan_end_at' => $planEndAt,
+                'saldo_usado' => $saldoUsado,
+                'desconto_aplicado' => $descontoValor,
+                'preco_original' => $precoOriginal,
+                'valor_final' => $valorFinal,
+                'timestamp' => date('c'),
+            ], JSON_UNESCAPED_UNICODE);
+
+            $consultationStmt->execute([
+                $userId,
+                $availability['dominio_completo'],
+                $valorFinal,
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                $_SERVER['HTTP_USER_AGENT'] ?? null,
+                $metadata,
+            ]);
+
+            $this->db->commit();
+
             return [
                 'id' => $registroId,
                 'dominio_nome' => $availability['dominio_nome'],
