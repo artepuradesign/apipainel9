@@ -2,8 +2,8 @@
 require_once __DIR__ . '/BaseModel.php';
 require_once __DIR__ . '/../services/NotificationService.php';
 
-class SistemasDominioCom extends BaseModel {
-    protected $table = 'sistemas_dominio_com';
+class SistemasHospedagemVps1Mes extends BaseModel {
+    protected $table = 'sistemas_hospedagem_vps_1_mes';
 
     public function __construct($db) {
         parent::__construct($db);
@@ -11,38 +11,11 @@ class SistemasDominioCom extends BaseModel {
         $this->ensurePlanDateColumns();
     }
 
-    public function normalizeDomainName(string $input): string {
-        $domain = strtolower(trim($input));
-        $domain = preg_replace('/\.com$/', '', $domain);
-        $domain = preg_replace('/[^a-z0-9-]/', '', $domain);
-
-        if (strlen($domain) < 2 || strlen($domain) > 63) {
-            throw new Exception('Nome de domínio deve ter entre 2 e 63 caracteres');
-        }
-
-        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/', $domain)) {
-            throw new Exception('Nome de domínio inválido. Use letras, números e hífen (sem iniciar/finalizar com hífen)');
-        }
-
-        return $domain;
-    }
-
-    public function buildFullDomain(string $domainName): string {
-        return $domainName . '.com';
-    }
-
-    public function findByDomain(string $fullDomain): ?array {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE dominio_completo = ? LIMIT 1");
-        $stmt->execute([$fullDomain]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
-    }
-
     public function findByIdForUser(int $id, int $userId): ?array {
         $this->expireFinishedRecords();
 
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ? AND user_id = ?
              LIMIT 1"
@@ -52,24 +25,11 @@ class SistemasDominioCom extends BaseModel {
         return $row ?: null;
     }
 
-    public function checkAvailability(string $domainInput): array {
-        $domainName = $this->normalizeDomainName($domainInput);
-        $fullDomain = $this->buildFullDomain($domainName);
-        $existing = $this->findByDomain($fullDomain);
-
-        return [
-            'dominio_nome' => $domainName,
-            'dominio_completo' => $fullDomain,
-            'disponivel' => !$existing,
-            'registro' => $existing,
-        ];
-    }
-
     public function listByUser(int $userId, int $limit = 50, int $offset = 0): array {
         $this->expireFinishedRecords();
 
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE user_id = ?
              ORDER BY id DESC
@@ -94,14 +54,15 @@ class SistemasDominioCom extends BaseModel {
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
 
         if ($search) {
-            $where[] = '(nome_solicitante LIKE ? OR dominio_nome LIKE ? OR dominio_completo LIKE ?)';
+            $where[] = '(nome_solicitante LIKE ? OR nome_instancia LIKE ? OR ip_vps LIKE ? OR configuracao_linux LIKE ?)';
             $like = '%' . trim($search) . '%';
+            $params[] = $like;
             $params[] = $like;
             $params[] = $like;
             $params[] = $like;
@@ -110,7 +71,7 @@ class SistemasDominioCom extends BaseModel {
         $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              {$whereSql}
              ORDER BY id DESC
@@ -130,14 +91,15 @@ class SistemasDominioCom extends BaseModel {
         $where = [];
         $params = [];
 
-        if ($status && in_array($status, ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'], true)) {
+        if ($status && in_array($status, ['registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado'], true)) {
             $where[] = 'status = ?';
             $params[] = $status;
         }
 
         if ($search) {
-            $where[] = '(nome_solicitante LIKE ? OR dominio_nome LIKE ? OR dominio_completo LIKE ?)';
+            $where[] = '(nome_solicitante LIKE ? OR nome_instancia LIKE ? OR ip_vps LIKE ? OR configuracao_linux LIKE ?)';
             $like = '%' . trim($search) . '%';
+            $params[] = $like;
             $params[] = $like;
             $params[] = $like;
             $params[] = $like;
@@ -156,10 +118,21 @@ class SistemasDominioCom extends BaseModel {
         return $stmt->execute([$id]);
     }
 
-    public function updateAdminWorkflow(int $id, string $status): array {
-        $allowedStatuses = ['registrado', 'em_propagacao', 'finalizado'];
+    public function updateAdminWorkflow(int $id, string $status, ?string $ipVps = null): array {
+        $allowedStatuses = ['registrado', 'em_configuracao', 'finalizado'];
         if (!in_array($status, $allowedStatuses, true)) {
             throw new Exception('Status inválido para controle administrativo');
+        }
+
+        if ($status === 'finalizado') {
+            $ipVps = trim((string)$ipVps);
+            if ($ipVps === '') {
+                throw new Exception('Informe o IP da VPS antes de finalizar o pedido');
+            }
+
+            if (strlen($ipVps) > 45) {
+                throw new Exception('IP inválido');
+            }
         }
 
         $currentStmt = $this->db->prepare("SELECT user_id, status FROM {$this->table} WHERE id = ? LIMIT 1");
@@ -170,18 +143,28 @@ class SistemasDominioCom extends BaseModel {
             throw new Exception('Pedido não encontrado');
         }
 
+        $fields = [
+            'status = ?',
+            'plan_start_at = COALESCE(plan_start_at, created_at)',
+            'plan_end_at = COALESCE(plan_end_at, DATE_ADD(COALESCE(plan_start_at, created_at), INTERVAL duracao_meses MONTH))',
+            'updated_at = NOW()'
+        ];
+        $params = [$status];
+
+        if ($ipVps !== null) {
+            $fields[] = 'ip_vps = ?';
+            $params[] = trim($ipVps);
+        }
+
+        $params[] = $id;
+
         $stmt = $this->db->prepare(
-            "UPDATE {$this->table}
-             SET status = ?,
-                 plan_start_at = COALESCE(plan_start_at, created_at),
-                 plan_end_at = COALESCE(plan_end_at, DATE_ADD(COALESCE(plan_start_at, created_at), INTERVAL 12 MONTH)),
-                 updated_at = NOW()
-             WHERE id = ? AND status NOT IN ('cancelado', 'vencido')"
+            "UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE id = ? AND status NOT IN ('cancelado', 'vencido')"
         );
-        $stmt->execute([$status, $id]);
+        $stmt->execute($params);
 
         $rowStmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ?
              LIMIT 1"
@@ -196,7 +179,7 @@ class SistemasDominioCom extends BaseModel {
         if ((int)($row['user_id'] ?? 0) > 0 && ($currentRow['status'] ?? '') !== ($row['status'] ?? '')) {
             $statusLabelMap = [
                 'registrado' => 'Registrado',
-                'em_propagacao' => 'Em Propagação',
+                'em_configuracao' => 'Em Configuração',
                 'finalizado' => 'Finalizado',
                 'vencido' => 'Vencido',
             ];
@@ -206,8 +189,8 @@ class SistemasDominioCom extends BaseModel {
             $notificationService->createNotification(
                 (int)$row['user_id'],
                 'pedido_status',
-                "Pedido Domínio .COM #{$id} atualizado",
-                "O status do seu pedido de domínio foi alterado para: {$statusLabel}.",
+                "Pedido VPS #{$id} atualizado",
+                "O status do seu pedido VPS foi alterado para: {$statusLabel}.",
                 '/dashboard/meus-pedidos',
                 'Ver pedidos',
                 $row['status'] === 'finalizado' ? 'high' : 'medium'
@@ -217,35 +200,36 @@ class SistemasDominioCom extends BaseModel {
         return $row;
     }
 
-    public function registerDomain(array $data, int $userId): array {
+    public function registerOrder(array $data, int $userId): array {
         $nomeSolicitante = trim((string)($data['nome_solicitante'] ?? ''));
         if ($nomeSolicitante === '' || strlen($nomeSolicitante) > 150) {
             throw new Exception('Nome do solicitante é obrigatório e deve ter até 150 caracteres');
         }
 
-        $moduleId = (int)($data['module_id'] ?? 176);
-        $availability = $this->checkAvailability((string)($data['dominio_nome'] ?? ''));
-
-        if (!$availability['disponivel']) {
-            throw new Exception('Este domínio já está registrado');
+        $nomeInstancia = trim((string)($data['nome_instancia'] ?? ''));
+        if ($nomeInstancia === '') {
+            $nomeInstancia = 'vps-' . $userId;
         }
+        if (strlen($nomeInstancia) > 120) {
+            throw new Exception('Nome da instância deve ter até 120 caracteres');
+        }
+
+        $moduleId = (int)($data['module_id'] ?? 178);
+        $duracaoMeses = 1;
+        $configuracaoPadrao = 'Ubuntu 22.04 LTS + Docker + UFW';
 
         $this->db->beginTransaction();
 
         try {
-            $lockStmt = $this->db->prepare("SELECT id FROM {$this->table} WHERE dominio_completo = ? FOR UPDATE");
-            $lockStmt->execute([$availability['dominio_completo']]);
-            if ($lockStmt->fetch(PDO::FETCH_ASSOC)) {
-                throw new Exception('Este domínio acabou de ser registrado por outro usuário');
-            }
-
-            $moduleStmt = $this->db->prepare("SELECT price FROM modules WHERE id = ? LIMIT 1");
+            $moduleStmt = $this->db->prepare("SELECT name, price FROM modules WHERE id = ? LIMIT 1");
             $moduleStmt->execute([$moduleId]);
             $moduleData = $moduleStmt->fetch(PDO::FETCH_ASSOC);
             $precoOriginal = (float)($moduleData['price'] ?? 0);
             if ($precoOriginal <= 0) {
                 throw new Exception('Preço do módulo não configurado');
             }
+
+            $duracaoMeses = $this->resolveDurationMonthsFromModule($moduleData['name'] ?? null, $duracaoMeses);
 
             $userStmt = $this->db->prepare("SELECT saldo, saldo_plano, tipoplano FROM users WHERE id = ? LIMIT 1 FOR UPDATE");
             $userStmt->execute([$userId]);
@@ -280,20 +264,24 @@ class SistemasDominioCom extends BaseModel {
                 $saldoUsado = 'plano';
             }
 
+            $ipVps = '';
+
             $planStartAt = date('Y-m-d H:i:s');
-            $planEndAt = date('Y-m-d H:i:s', strtotime('+12 months', strtotime($planStartAt)));
+            $planEndAt = date('Y-m-d H:i:s', strtotime("+{$duracaoMeses} months", strtotime($planStartAt)));
 
             $insertStmt = $this->db->prepare(
                 "INSERT INTO {$this->table}
-                (module_id, user_id, nome_solicitante, dominio_nome, dominio_completo, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
+                (module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
             );
             $insertStmt->execute([
                 $moduleId,
                 $userId,
                 $nomeSolicitante,
-                $availability['dominio_nome'],
-                $availability['dominio_completo'],
+                $nomeInstancia,
+                $ipVps,
+                $configuracaoPadrao,
+                $duracaoMeses,
                 $planStartAt,
                 $planEndAt,
                 $valorFinal,
@@ -309,7 +297,7 @@ class SistemasDominioCom extends BaseModel {
             $this->syncUserWalletBalance($userId, 'main', $novoSaldoCarteira);
             $this->syncUserWalletBalance($userId, 'plan', $novoSaldoPlano);
 
-            $description = "Registro domínio .COM: {$availability['dominio_completo']}";
+            $description = "Hospedagem VPS {$duracaoMeses} meses (IP pendente de configuração)";
 
             if ($debitoPlano > 0) {
                 $this->insertWalletTransaction(
@@ -338,16 +326,16 @@ class SistemasDominioCom extends BaseModel {
             $consultationStmt = $this->db->prepare(
                 "INSERT INTO consultations
                 (user_id, module_type, document, cost, result_data, status, ip_address, user_agent, metadata, created_at, updated_at)
-                VALUES (?, 'sistemas_dominio_com', ?, ?, NULL, 'completed', ?, ?, ?, NOW(), NOW())"
+                VALUES (?, 'sistemas_hospedagem_vps_6', ?, ?, NULL, 'completed', ?, ?, ?, NOW(), NOW())"
             );
 
             $metadata = json_encode([
-                'source' => 'sistemas-dominio-com',
+                'source' => 'sistemas-hospedagem-vps-6',
                 'module_id' => $moduleId,
                 'registro_id' => $registroId,
-                'dominio' => $availability['dominio_completo'],
-                'plan_start_at' => $planStartAt,
-                'plan_end_at' => $planEndAt,
+                'ip_vps' => null,
+                'configuracao_linux' => $configuracaoPadrao,
+                'duracao_meses' => $duracaoMeses,
                 'saldo_usado' => $saldoUsado,
                 'desconto_aplicado' => $descontoValor,
                 'preco_original' => $precoOriginal,
@@ -357,7 +345,7 @@ class SistemasDominioCom extends BaseModel {
 
             $consultationStmt->execute([
                 $userId,
-                $availability['dominio_completo'],
+                $nomeInstancia,
                 $valorFinal,
                 $_SERVER['REMOTE_ADDR'] ?? null,
                 $_SERVER['HTTP_USER_AGENT'] ?? null,
@@ -368,8 +356,11 @@ class SistemasDominioCom extends BaseModel {
 
             return [
                 'id' => $registroId,
-                'dominio_nome' => $availability['dominio_nome'],
-                'dominio_completo' => $availability['dominio_completo'],
+                'nome_solicitante' => $nomeSolicitante,
+                'nome_instancia' => $nomeInstancia,
+                'ip_vps' => $ipVps,
+                'configuracao_linux' => $configuracaoPadrao,
+                'duracao_meses' => $duracaoMeses,
                 'plan_start_at' => $planStartAt,
                 'plan_end_at' => $planEndAt,
                 'valor_cobrado' => $valorFinal,
@@ -395,12 +386,12 @@ class SistemasDominioCom extends BaseModel {
             $row = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
             $type = strtolower((string)($row['Type'] ?? ''));
 
-            $required = ['registrado', 'em_propagacao', 'finalizado', 'vencido', 'cancelado'];
+            $required = ['registrado', 'em_configuracao', 'finalizado', 'vencido', 'cancelado'];
             $missing = array_filter($required, static fn($value) => strpos($type, "'{$value}'") === false);
 
             if (!empty($missing)) {
                 $this->db->exec(
-                    "ALTER TABLE {$this->table} MODIFY COLUMN status ENUM('registrado','em_propagacao','finalizado','vencido','cancelado') NOT NULL DEFAULT 'registrado'"
+                    "ALTER TABLE {$this->table} MODIFY COLUMN status ENUM('registrado','em_configuracao','finalizado','vencido','cancelado') NOT NULL DEFAULT 'registrado'"
                 );
             }
         } catch (Exception $e) {
@@ -412,7 +403,7 @@ class SistemasDominioCom extends BaseModel {
         try {
             $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_start_at'");
             if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
-                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_start_at DATETIME NULL AFTER dominio_completo");
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_start_at DATETIME NULL AFTER duracao_meses");
             }
 
             $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_end_at'");
@@ -439,8 +430,28 @@ class SistemasDominioCom extends BaseModel {
         }
     }
 
+    private function resolveDurationMonthsFromModule(?string $moduleName, int $fallback): int {
+        $normalizedName = strtolower(trim((string)$moduleName));
+        if ($normalizedName === '') {
+            return max(1, $fallback);
+        }
+
+        if (preg_match('/1\s*ano|12\s*mes/', $normalizedName)) {
+            return 12;
+        }
+
+        if (preg_match('/1\s*m[eê]s/', $normalizedName)) {
+            return 1;
+        }
+
+        if (preg_match('/6\s*mes/', $normalizedName)) {
+            return 6;
+        }
+
+        return max(1, $fallback);
+    }
+
     private function resolveDiscountPercent(int $userId, string $planName): float {
-        // 1) Plano ativo do usuário (fonte prioritária)
         $activePlanStmt = $this->db->prepare(
             "SELECT p.discount_percentage
              FROM user_subscriptions us
@@ -455,7 +466,6 @@ class SistemasDominioCom extends BaseModel {
             return max(0, (float)$activePlanDiscount);
         }
 
-        // 2) Fallback por nome do plano na tabela plans
         if ($planName !== '') {
             $planByNameStmt = $this->db->prepare("SELECT discount_percentage FROM plans WHERE name = ? LIMIT 1");
             $planByNameStmt->execute([$planName]);
@@ -465,7 +475,6 @@ class SistemasDominioCom extends BaseModel {
             }
         }
 
-        // 3) Legado: planos antigos
         $legacyDiscountMap = [
             'Pré-Pago' => 0,
             'Rainha de Ouros' => 5,
@@ -511,7 +520,7 @@ class SistemasDominioCom extends BaseModel {
         $stmt = $this->db->prepare(
             "INSERT INTO wallet_transactions
             (user_id, wallet_type, type, amount, balance_before, balance_after, description, payment_method, reference_type, reference_id, status, created_at, updated_at)
-            VALUES (?, ?, 'consulta', ?, ?, ?, ?, 'saldo', 'sistemas_dominio_com', ?, 'completed', NOW(), NOW())"
+            VALUES (?, ?, 'consulta', ?, ?, ?, ?, 'saldo', 'sistemas_hospedagem_vps_1_mes', ?, 'completed', NOW(), NOW())"
         );
 
         $stmt->execute([

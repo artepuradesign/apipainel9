@@ -1,30 +1,15 @@
 <?php
 require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../models/SistemasDominioCom.php';
+require_once __DIR__ . '/../models/SistemasHospedagemVps6.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 
-class SistemasDominioComController {
+class SistemasHospedagemVps6Controller {
     private $db;
     private $model;
 
     public function __construct($db) {
         $this->db = $db;
-        $this->model = new SistemasDominioCom($db);
-    }
-
-    public function verificarDisponibilidade() {
-        try {
-            $domain = trim((string)($_GET['domain'] ?? $_GET['dominio_nome'] ?? ''));
-            if ($domain === '') {
-                Response::error('Informe o nome do domínio para pesquisa', 400);
-                return;
-            }
-
-            $result = $this->model->checkAvailability($domain);
-            Response::success($result, $result['disponivel'] ? 'Domínio disponível para registro' : 'Domínio já registrado');
-        } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
-        }
+        $this->model = new SistemasHospedagemVps6($db);
     }
 
     public function listarMeus() {
@@ -103,8 +88,8 @@ class SistemasDominioComController {
                 return;
             }
 
-            $result = $this->model->registerDomain($input, (int)$userId);
-            Response::success($result, 'Domínio registrado com sucesso');
+            $result = $this->model->registerOrder($input, (int)$userId);
+            Response::success($result, 'VPS registrada com sucesso');
         } catch (Exception $e) {
             Response::error($e->getMessage(), 400);
         }
@@ -161,7 +146,9 @@ class SistemasDominioComController {
             }
 
             $status = trim((string)$input['status']);
-            $row = $this->model->updateAdminWorkflow($id, $status);
+            $ipVps = isset($input['ip_vps']) ? trim((string)$input['ip_vps']) : null;
+
+            $row = $this->model->updateAdminWorkflow($id, $status, $ipVps);
             Response::success($row, 'Status do pedido atualizado com sucesso');
         } catch (Exception $e) {
             Response::error($e->getMessage(), 400);
