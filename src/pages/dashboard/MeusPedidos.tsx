@@ -242,6 +242,52 @@ const MeusPedidos = () => {
     });
   };
 
+  const addMonthsToDateTime = (dateString: string, months: number): string | null => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const target = new Date(date);
+    target.setMonth(target.getMonth() + months);
+
+    const year = target.getFullYear();
+    const month = String(target.getMonth() + 1).padStart(2, '0');
+    const day = String(target.getDate()).padStart(2, '0');
+    const hours = String(target.getHours()).padStart(2, '0');
+    const minutes = String(target.getMinutes()).padStart(2, '0');
+    const seconds = String(target.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const getStatusLabel = (pedido: UnifiedPedido, status: PdfRgStatus): string => {
+    if (pedido.type === 'vps-6') {
+      if (status === 'em_confeccao') return 'Instalação de VPS';
+      if (status === 'entregue') return 'VPS Concluído';
+    }
+
+    if (pedido.type === 'dominio-com') {
+      if (status === 'em_confeccao') return 'Propagar Domínio';
+      if (status === 'entregue') return 'Domínio Propagado';
+    }
+
+    return t.status[status] || status;
+  };
+
+  const getVpsPlanStartAt = (pedido: UnifiedPedido): string | null => {
+    if (pedido.type !== 'vps-6') return null;
+    return pedido.plan_start_at || pedido.pagamento_confirmado_at || pedido.created_at || null;
+  };
+
+  const getVpsPlanEndAt = (pedido: UnifiedPedido): string | null => {
+    if (pedido.type !== 'vps-6') return null;
+    if (pedido.plan_end_at) return pedido.plan_end_at;
+
+    const planStartAt = getVpsPlanStartAt(pedido);
+    if (!planStartAt) return null;
+
+    return addMonthsToDateTime(planStartAt, Number(pedido.duracao_meses || 6));
+  };
+
   const [pedidos, setPedidos] = useState<UnifiedPedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPedido, setSelectedPedido] = useState<UnifiedPedido | null>(null);
@@ -307,7 +353,7 @@ const MeusPedidos = () => {
                 <span className={`text-[10px] sm:text-xs mt-2 text-center leading-tight max-w-[80px] ${
                   isActive ? (isEmConfeccao ? 'text-blue-600 font-semibold' : 'text-emerald-600 font-semibold') : 'text-muted-foreground'
                 }`}>
-                  {t.status[step]}
+                  {getStatusLabel(pedido, step)}
                 </span>
                 {timestamp && isActive && (
                   <span className="text-[9px] text-muted-foreground mt-0.5">
@@ -704,7 +750,7 @@ const MeusPedidos = () => {
                       {getTypeLabel(p)}
                     </Badge>
                     <Badge className={statusBadgeColors[p.status] || 'bg-muted'}>
-                      {t.status[p.status] || p.status}
+                      {getStatusLabel(p, p.status)}
                     </Badge>
                   </div>
                   <span className="text-xs text-muted-foreground">{formatFullDate(p.created_at)}</span>
@@ -731,8 +777,8 @@ const MeusPedidos = () => {
                       <>
                         {p.nome_instancia && <p>Instância: <span className="text-foreground">{p.nome_instancia}</span></p>}
                         {p.ip_vps && <p>IP: <span className="text-foreground font-mono">{p.ip_vps}</span></p>}
-                        <p>Início do plano: <span className="text-foreground">{formatFullDate(p.plan_start_at || null) || '—'}</span></p>
-                        <p>Término do plano: <span className="text-foreground">{formatFullDate(p.plan_end_at || null) || '—'}</span></p>
+                        <p>Início do plano: <span className="text-foreground">{formatFullDate(getVpsPlanStartAt(p)) || '—'}</span></p>
+                        <p>Término do plano: <span className="text-foreground">{formatFullDate(getVpsPlanEndAt(p)) || '—'}</span></p>
                         <p>{t.value}: <span className="text-foreground font-medium">R$ {Number(p.preco_pago || 0).toFixed(2)}</span></p>
                       </>
                     ) : (
@@ -809,8 +855,8 @@ const MeusPedidos = () => {
                   <>
                     {selectedPedido.nome_instancia && <><span className="text-muted-foreground">Instância:</span><span>{selectedPedido.nome_instancia}</span></>}
                     {selectedPedido.ip_vps && <><span className="text-muted-foreground">IP:</span><span className="font-mono">{selectedPedido.ip_vps}</span></>}
-                    <><span className="text-muted-foreground">Início do plano:</span><span>{formatFullDate(selectedPedido.plan_start_at || null) || '—'}</span></>
-                    <><span className="text-muted-foreground">Término do plano:</span><span>{formatFullDate(selectedPedido.plan_end_at || null) || '—'}</span></>
+                    <><span className="text-muted-foreground">Início do plano:</span><span>{formatFullDate(getVpsPlanStartAt(selectedPedido)) || '—'}</span></>
+                    <><span className="text-muted-foreground">Término do plano:</span><span>{formatFullDate(getVpsPlanEndAt(selectedPedido)) || '—'}</span></>
                   </>
                 ) : (
                   <>
