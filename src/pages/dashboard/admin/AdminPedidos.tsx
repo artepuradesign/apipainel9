@@ -1275,11 +1275,13 @@ const AdminPedidos = () => {
               <DialogTitle className="flex items-center gap-2">
                 {selectedPedido && (() => {
                   const ModuleIcon = getPedidoModuleIcon(selectedPedido);
-                  const moduleIconColorClass = getPedidoModuleIconColorClass(selectedPedido.type);
+                  const moduleColor = getPedidoModuleColor(selectedPedido.type);
+
+                  if (!ModuleIcon) return null;
 
                   return (
                     <div className="h-9 w-9 shrink-0 rounded-md border bg-muted flex items-center justify-center">
-                      <ModuleIcon className={`h-5 w-5 ${moduleIconColorClass}`} />
+                      <ModuleIcon className="h-5 w-5" style={{ color: moduleColor }} />
                     </div>
                   );
                 })()}
