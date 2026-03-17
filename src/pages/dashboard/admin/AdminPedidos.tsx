@@ -147,6 +147,11 @@ type UnifiedPedido = {
   raw_vps?: SistemaHospedagemVps6Registro;
 };
 
+type PedidoModuleConfig = {
+  icon?: string;
+  color?: string;
+};
+
 const getStepTimestamp = (pedido: UnifiedPedido, step: ActivePedidoStatus): string | null => {
   const map: Record<PdfRgStatus, string | null> = {
     realizado: pedido.realizado_at,
