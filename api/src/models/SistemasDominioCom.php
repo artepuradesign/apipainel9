@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/BaseModel.php';
+require_once __DIR__ . '/../services/NotificationService.php';
 
 class SistemasDominioCom extends BaseModel {
     protected $table = 'sistemas_dominio_com';
@@ -150,6 +151,14 @@ class SistemasDominioCom extends BaseModel {
             throw new Exception('Status inválido para controle administrativo');
         }
 
+        $currentStmt = $this->db->prepare("SELECT user_id, status FROM {$this->table} WHERE id = ? LIMIT 1");
+        $currentStmt->execute([$id]);
+        $currentRow = $currentStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$currentRow) {
+            throw new Exception('Pedido não encontrado');
+        }
+
         $stmt = $this->db->prepare(
             "UPDATE {$this->table} SET status = ?, updated_at = NOW() WHERE id = ? AND status <> 'cancelado'"
         );
@@ -166,6 +175,26 @@ class SistemasDominioCom extends BaseModel {
 
         if (!$row) {
             throw new Exception('Pedido não encontrado');
+        }
+
+        if ((int)($row['user_id'] ?? 0) > 0 && ($currentRow['status'] ?? '') !== ($row['status'] ?? '')) {
+            $statusLabelMap = [
+                'registrado' => 'Registrado',
+                'em_propagacao' => 'Em Propagação',
+                'finalizado' => 'Finalizado',
+            ];
+            $statusLabel = $statusLabelMap[$row['status']] ?? $row['status'];
+
+            $notificationService = new NotificationService($this->db);
+            $notificationService->createNotification(
+                (int)$row['user_id'],
+                'pedido_status',
+                "Pedido Domínio .COM #{$id} atualizado",
+                "O status do seu pedido de domínio foi alterado para: {$statusLabel}.",
+                '/dashboard/meus-pedidos',
+                'Ver pedidos',
+                $row['status'] === 'finalizado' ? 'high' : 'medium'
+            );
         }
 
         return $row;

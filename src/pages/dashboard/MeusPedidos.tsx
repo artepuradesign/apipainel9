@@ -210,6 +210,9 @@ type UnifiedPedido = {
   dominio_completo?: string;
   nome_instancia?: string;
   ip_vps?: string;
+  duracao_meses?: number;
+  plan_start_at?: string | null;
+  plan_end_at?: string | null;
 };
 
 const MeusPedidos = () => {
@@ -441,6 +444,9 @@ const MeusPedidos = () => {
             nome_solicitante: p.nome_solicitante,
             nome_instancia: p.nome_instancia,
             ip_vps: p.ip_vps,
+            duracao_meses: p.duracao_meses,
+            plan_start_at: p.plan_start_at,
+            plan_end_at: p.plan_end_at,
           });
         });
       }
@@ -545,6 +551,9 @@ const MeusPedidos = () => {
             nome_solicitante: p.nome_solicitante,
             nome_instancia: p.nome_instancia,
             ip_vps: p.ip_vps,
+            duracao_meses: p.duracao_meses,
+            plan_start_at: p.plan_start_at,
+            plan_end_at: p.plan_end_at,
             preco_pago: p.valor_cobrado,
             status: mappedStatus,
             created_at: p.created_at,
@@ -607,16 +616,23 @@ const MeusPedidos = () => {
     }
   };
 
-  const getTypeLabel = (type: string) => (
-    type === 'pdf-rg'
+  const getVpsLabel = (pedido: UnifiedPedido) => {
+    const months = Number(pedido.duracao_meses || 6);
+    if (months >= 12) return 'VPS 1 ANO';
+    if (months <= 1) return 'VPS 1 MÊS';
+    return 'VPS 6 MESES';
+  };
+
+  const getTypeLabel = (pedido: UnifiedPedido) => (
+    pedido.type === 'pdf-rg'
       ? t.typeRg
-      : type === 'pdf-personalizado'
+      : pedido.type === 'pdf-personalizado'
       ? t.typeCustom
-      : type === 'dominio-com'
+      : pedido.type === 'dominio-com'
       ? t.typeDomain
-      : type === 'dominio-com-br'
+      : pedido.type === 'dominio-com-br'
       ? 'Domínio .COM.BR'
-      : 'VPS 6 Meses'
+      : getVpsLabel(pedido)
   );
   const canCancelPedido = (status: PdfRgStatus) => ['realizado', 'pagamento_confirmado'].includes(status);
 
@@ -685,7 +701,7 @@ const MeusPedidos = () => {
                     <span className="font-mono font-bold text-sm">{t.order} #{p.id}</span>
                     <Badge variant="outline" className={getTypeBadgeClass(p.type)}>
                       {p.type === 'dominio-com' || p.type === 'dominio-com-br' ? <Globe className="h-3 w-3 mr-1" /> : p.type === 'vps-6' ? <Server className="h-3 w-3 mr-1" /> : <FileText className="h-3 w-3 mr-1" />}
-                      {getTypeLabel(p.type)}
+                      {getTypeLabel(p)}
                     </Badge>
                     <Badge className={statusBadgeColors[p.status] || 'bg-muted'}>
                       {t.status[p.status] || p.status}
@@ -710,6 +726,14 @@ const MeusPedidos = () => {
                         {p.nome_solicitante && <p>{t.requester}: <span className="text-foreground">{p.nome_solicitante}</span></p>}
                         <p>{t.value}: <span className="text-foreground font-medium">R$ {Number(p.preco_pago || 0).toFixed(2)}</span></p>
                         {p.descricao_alteracoes && <p className="md:col-span-2 truncate max-w-md">{t.changes}: <span className="text-foreground">{p.descricao_alteracoes}</span></p>}
+                      </>
+                    ) : p.type === 'vps-6' ? (
+                      <>
+                        {p.nome_instancia && <p>Instância: <span className="text-foreground">{p.nome_instancia}</span></p>}
+                        {p.ip_vps && <p>IP: <span className="text-foreground font-mono">{p.ip_vps}</span></p>}
+                        <p>Início do plano: <span className="text-foreground">{formatFullDate(p.plan_start_at || null) || '—'}</span></p>
+                        <p>Término do plano: <span className="text-foreground">{formatFullDate(p.plan_end_at || null) || '—'}</span></p>
+                        <p>{t.value}: <span className="text-foreground font-medium">R$ {Number(p.preco_pago || 0).toFixed(2)}</span></p>
                       </>
                     ) : (
                       <>
@@ -753,7 +777,7 @@ const MeusPedidos = () => {
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.order} #{selectedPedido?.id}</DialogTitle>
-            <DialogDescription>{selectedPedido ? getTypeLabel(selectedPedido.type) : t.orderDetails}</DialogDescription>
+            <DialogDescription>{selectedPedido ? getTypeLabel(selectedPedido) : t.orderDetails}</DialogDescription>
           </DialogHeader>
           {selectedPedido && (
             <div className="space-y-4 text-sm">
@@ -780,6 +804,13 @@ const MeusPedidos = () => {
                         <span className="col-span-2 whitespace-pre-wrap text-foreground bg-muted/50 rounded p-2">{selectedPedido.descricao_alteracoes}</span>
                       </>
                     )}
+                  </>
+                ) : selectedPedido.type === 'vps-6' ? (
+                  <>
+                    {selectedPedido.nome_instancia && <><span className="text-muted-foreground">Instância:</span><span>{selectedPedido.nome_instancia}</span></>}
+                    {selectedPedido.ip_vps && <><span className="text-muted-foreground">IP:</span><span className="font-mono">{selectedPedido.ip_vps}</span></>}
+                    <><span className="text-muted-foreground">Início do plano:</span><span>{formatFullDate(selectedPedido.plan_start_at || null) || '—'}</span></>
+                    <><span className="text-muted-foreground">Término do plano:</span><span>{formatFullDate(selectedPedido.plan_end_at || null) || '—'}</span></>
                   </>
                 ) : (
                   <>

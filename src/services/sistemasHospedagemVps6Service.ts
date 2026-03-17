@@ -10,6 +10,8 @@ export interface SistemaHospedagemVps6Registro {
   ip_vps: string;
   configuracao_linux: string;
   duracao_meses: number;
+  plan_start_at: string | null;
+  plan_end_at: string | null;
   status: 'registrado' | 'em_configuracao' | 'finalizado' | 'cancelado';
   valor_cobrado: number;
   desconto_aplicado: number;

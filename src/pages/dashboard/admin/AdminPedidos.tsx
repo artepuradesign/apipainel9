@@ -125,6 +125,8 @@ type UnifiedPedido = {
   pagamento_confirmado_at: string | null;
   em_confeccao_at: string | null;
   entregue_at: string | null;
+  plan_start_at?: string | null;
+  plan_end_at?: string | null;
   pdf_entrega_nome?: string | null;
   raw_rg?: PdfRgPedido;
   raw_personalizado?: EditarPdfPedido;
@@ -237,6 +239,7 @@ const AdminPedidos = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [deletingPdf, setDeletingPdf] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
+  const [savingWorkflowIp, setSavingWorkflowIp] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [cancelingPedido, setCancelingPedido] = useState(false);
   const [qrCadastroSelecionado, setQrCadastroSelecionado] = useState<QrRegistration | null>(null);
@@ -431,6 +434,8 @@ const AdminPedidos = () => {
               pagamento_confirmado_at: vps.status === 'cancelado' ? null : vps.created_at,
               em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
               entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
+              plan_start_at: vps.plan_start_at,
+              plan_end_at: vps.plan_end_at,
               raw_vps: vps,
             });
           });
@@ -641,6 +646,8 @@ const AdminPedidos = () => {
             pagamento_confirmado_at: vps.status === 'cancelado' ? null : vps.created_at,
             em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
             entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
+            plan_start_at: vps.plan_start_at,
+            plan_end_at: vps.plan_end_at,
             raw_vps: vps,
           } : null);
         } else if (selectedPedido.type === 'dominio-com' && res.data) {
@@ -663,6 +670,60 @@ const AdminPedidos = () => {
       toast.error('Erro ao atualizar status');
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleSaveWorkflowIp = async () => {
+    if (!selectedPedido || selectedPedido.type !== 'vps-6') return;
+    const targetStatus = mapUnifiedToModuleStatus(selectedPedido.type, selectedPedido.status);
+    if (!targetStatus || targetStatus === 'cancelado' || targetStatus === 'em_propagacao') return;
+
+    setSavingWorkflowIp(true);
+    try {
+      const res = await sistemasHospedagemVps6Service.updateStatusByAdmin(selectedPedido.id, {
+        status: targetStatus,
+        ip_vps: workflowIp.trim(),
+      });
+
+      if (!res.success || !res.data) {
+        toast.error(res.error || 'Erro ao salvar IP da VPS');
+        return;
+      }
+
+      const vps = res.data;
+      const mappedStatus = mapModuleStatusToUnified('vps-6', vps.status as ModuleWorkflowStatus);
+      const statusTimestamp = vps.updated_at || vps.created_at;
+
+      setWorkflowIp(vps.ip_vps || '');
+      setSelectedPedido((prev) => prev ? {
+        ...prev,
+        status: mappedStatus,
+        sublabel: `IP: ${vps.ip_vps?.trim() ? vps.ip_vps : 'pendente'}`,
+        pagamento_confirmado_at: vps.status === 'cancelado' ? null : vps.created_at,
+        em_confeccao_at: mappedStatus === 'em_confeccao' || mappedStatus === 'entregue' ? statusTimestamp : null,
+        entregue_at: mappedStatus === 'entregue' ? statusTimestamp : null,
+        plan_start_at: vps.plan_start_at,
+        plan_end_at: vps.plan_end_at,
+        raw_vps: vps,
+      } : null);
+
+      setPedidos((prev) => prev.map((item) => (
+        item.type === 'vps-6' && item.id === selectedPedido.id
+          ? {
+              ...item,
+              sublabel: `IP: ${vps.ip_vps?.trim() ? vps.ip_vps : 'pendente'}`,
+              plan_start_at: vps.plan_start_at,
+              plan_end_at: vps.plan_end_at,
+              raw_vps: vps,
+            }
+          : item
+      )));
+
+      toast.success('IP da VPS salvo com sucesso');
+    } catch {
+      toast.error('Erro ao salvar IP da VPS');
+    } finally {
+      setSavingWorkflowIp(false);
     }
   };
 
@@ -838,12 +899,20 @@ const AdminPedidos = () => {
     setPdfFile(file);
   };
 
-  const typeLabel = (type: string) => {
-    if (type === 'pdf-rg') return 'PDF RG';
-    if (type === 'pdf-personalizado') return 'PDF Personalizado';
-    if (type === 'dominio-com') return 'DOMÍNIO .COM';
-    if (type === 'dominio-com-br') return 'DOMÍNIO .COM.BR';
+  const getVpsLabel = (pedido: Pick<UnifiedPedido, 'type' | 'raw_vps'>) => {
+    if (pedido.type !== 'vps-6') return '';
+    const months = Number(pedido.raw_vps?.duracao_meses || 6);
+    if (months >= 12) return 'VPS 1 ANO';
+    if (months <= 1) return 'VPS 1 MÊS';
     return 'VPS 6 MESES';
+  };
+
+  const typeLabel = (pedido: Pick<UnifiedPedido, 'type' | 'raw_vps'>) => {
+    if (pedido.type === 'pdf-rg') return 'PDF RG';
+    if (pedido.type === 'pdf-personalizado') return 'PDF Personalizado';
+    if (pedido.type === 'dominio-com') return 'DOMÍNIO .COM';
+    if (pedido.type === 'dominio-com-br') return 'DOMÍNIO .COM.BR';
+    return getVpsLabel(pedido);
   };
   const canCancelPedido = (status: PdfRgStatus) => !['entregue', 'cancelado'].includes(status);
 
@@ -935,9 +1004,11 @@ const AdminPedidos = () => {
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div><span className="text-muted-foreground">Instância:</span> {p.nome_instancia}</div>
           <div><span className="text-muted-foreground">Solicitante:</span> {p.nome_solicitante}</div>
-          <div><span className="text-muted-foreground">IP:</span> {p.ip_vps}</div>
+          <div><span className="text-muted-foreground">IP:</span> {p.ip_vps || '—'}</div>
           <div><span className="text-muted-foreground">Linux:</span> {p.configuracao_linux}</div>
           <div><span className="text-muted-foreground">Duração:</span> {p.duracao_meses} meses</div>
+          <div><span className="text-muted-foreground">Início do plano:</span> {p.plan_start_at ? new Date(p.plan_start_at).toLocaleString('pt-BR') : '—'}</div>
+          <div><span className="text-muted-foreground">Término do plano:</span> {p.plan_end_at ? new Date(p.plan_end_at).toLocaleString('pt-BR') : '—'}</div>
           <div><span className="text-muted-foreground">Valor:</span> R$ {Number(p.valor_cobrado || 0).toFixed(2)}</div>
           <div><span className="text-muted-foreground">Desconto:</span> R$ {Number(p.desconto_aplicado || 0).toFixed(2)}</div>
           <div><span className="text-muted-foreground">Status:</span> {p.status}</div>
@@ -1008,7 +1079,7 @@ const AdminPedidos = () => {
             <SelectItem value="pdf-personalizado">PDF Personalizado</SelectItem>
             <SelectItem value="dominio-com">DOMÍNIO .COM</SelectItem>
             <SelectItem value="dominio-com-br">DOMÍNIO .COM.BR</SelectItem>
-            <SelectItem value="vps-6">VPS 6 MESES</SelectItem>
+            <SelectItem value="vps-6">VPS (1 MÊS, 6 MESES, 1 ANO)</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -1052,7 +1123,7 @@ const AdminPedidos = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className={p.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30' : p.type === 'dominio-com' || p.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : p.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30' : 'bg-sky-500/10 text-sky-600 border-sky-500/30'}>
                         {p.type === 'pdf-personalizado' ? <FileEdit className="h-3 w-3 mr-1" /> : p.type === 'dominio-com' || p.type === 'dominio-com-br' ? <Globe className="h-3 w-3 mr-1" /> : p.type === 'vps-6' ? <Server className="h-3 w-3 mr-1" /> : <Package className="h-3 w-3 mr-1" />}
-                        {typeLabel(p.type)}
+                        {typeLabel(p)}
                       </Badge>
                       <span className="font-medium text-sm">#{p.id}</span>
                       <span className="text-sm">{p.label}</span>
@@ -1096,7 +1167,7 @@ const AdminPedidos = () => {
             <div className="flex items-center justify-between gap-2 pr-8">
               <DialogTitle className="flex items-center gap-2">
                 <Badge variant="outline" className={selectedPedido?.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30' : selectedPedido?.type === 'dominio-com' || selectedPedido?.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : selectedPedido?.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30' : 'bg-sky-500/10 text-sky-600 border-sky-500/30'}>
-                  {selectedPedido ? typeLabel(selectedPedido.type) : ''}
+                  {selectedPedido ? typeLabel(selectedPedido) : ''}
                 </Badge>
                 Pedido #{selectedPedido?.id}
               </DialogTitle>
@@ -1227,15 +1298,26 @@ const AdminPedidos = () => {
                       </div>
 
                       {selectedPedido.type === 'vps-6' && (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <Label htmlFor="workflow-ip" className="text-xs text-muted-foreground">IP para entrega da VPS</Label>
-                          <Input
-                            id="workflow-ip"
-                            placeholder="Ex.: 172.20.10.15"
-                            value={workflowIp}
-                            onChange={(e) => setWorkflowIp(e.target.value)}
-                            disabled={updatingStatus || cancelingPedido}
-                          />
+                          <div className="flex gap-2">
+                            <Input
+                              id="workflow-ip"
+                              placeholder="Ex.: 172.20.10.15"
+                              value={workflowIp}
+                              onChange={(e) => setWorkflowIp(e.target.value)}
+                              disabled={updatingStatus || cancelingPedido || savingWorkflowIp}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleSaveWorkflowIp}
+                              disabled={updatingStatus || cancelingPedido || savingWorkflowIp || !workflowIp.trim() || workflowIp.trim() === (selectedPedido.raw_vps?.ip_vps || '').trim()}
+                              className="shrink-0"
+                            >
+                              {savingWorkflowIp ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar IP'}
+                            </Button>
+                          </div>
                         </div>
                       )}
 

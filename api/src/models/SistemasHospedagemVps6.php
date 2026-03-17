@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/BaseModel.php';
+require_once __DIR__ . '/../services/NotificationService.php';
 
 class SistemasHospedagemVps6 extends BaseModel {
     protected $table = 'sistemas_hospedagem_vps_6';
@@ -7,11 +8,12 @@ class SistemasHospedagemVps6 extends BaseModel {
     public function __construct($db) {
         parent::__construct($db);
         $this->ensureStatusEnum();
+        $this->ensurePlanDateColumns();
     }
 
     public function findByIdForUser(int $id, int $userId): ?array {
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ? AND user_id = ?
              LIMIT 1"
@@ -23,7 +25,7 @@ class SistemasHospedagemVps6 extends BaseModel {
 
     public function listByUser(int $userId, int $limit = 50, int $offset = 0): array {
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE user_id = ?
              ORDER BY id DESC
@@ -61,7 +63,7 @@ class SistemasHospedagemVps6 extends BaseModel {
         $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
         $stmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              {$whereSql}
              ORDER BY id DESC
@@ -123,6 +125,14 @@ class SistemasHospedagemVps6 extends BaseModel {
             }
         }
 
+        $currentStmt = $this->db->prepare("SELECT user_id, status FROM {$this->table} WHERE id = ? LIMIT 1");
+        $currentStmt->execute([$id]);
+        $currentRow = $currentStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$currentRow) {
+            throw new Exception('Pedido não encontrado');
+        }
+
         $fields = ['status = ?', 'updated_at = NOW()'];
         $params = [$status];
 
@@ -139,7 +149,7 @@ class SistemasHospedagemVps6 extends BaseModel {
         $stmt->execute($params);
 
         $rowStmt = $this->db->prepare(
-            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
+            "SELECT id, module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at
              FROM {$this->table}
              WHERE id = ?
              LIMIT 1"
@@ -149,6 +159,26 @@ class SistemasHospedagemVps6 extends BaseModel {
 
         if (!$row) {
             throw new Exception('Pedido não encontrado');
+        }
+
+        if ((int)($row['user_id'] ?? 0) > 0 && ($currentRow['status'] ?? '') !== ($row['status'] ?? '')) {
+            $statusLabelMap = [
+                'registrado' => 'Registrado',
+                'em_configuracao' => 'Em Configuração',
+                'finalizado' => 'Finalizado',
+            ];
+            $statusLabel = $statusLabelMap[$row['status']] ?? $row['status'];
+
+            $notificationService = new NotificationService($this->db);
+            $notificationService->createNotification(
+                (int)$row['user_id'],
+                'pedido_status',
+                "Pedido VPS #{$id} atualizado",
+                "O status do seu pedido VPS foi alterado para: {$statusLabel}.",
+                '/dashboard/meus-pedidos',
+                'Ver pedidos',
+                $row['status'] === 'finalizado' ? 'high' : 'medium'
+            );
         }
 
         return $row;
@@ -175,13 +205,15 @@ class SistemasHospedagemVps6 extends BaseModel {
         $this->db->beginTransaction();
 
         try {
-            $moduleStmt = $this->db->prepare("SELECT price FROM modules WHERE id = ? LIMIT 1");
+            $moduleStmt = $this->db->prepare("SELECT name, price FROM modules WHERE id = ? LIMIT 1");
             $moduleStmt->execute([$moduleId]);
             $moduleData = $moduleStmt->fetch(PDO::FETCH_ASSOC);
             $precoOriginal = (float)($moduleData['price'] ?? 0);
             if ($precoOriginal <= 0) {
                 throw new Exception('Preço do módulo não configurado');
             }
+
+            $duracaoMeses = $this->resolveDurationMonthsFromModule($moduleData['name'] ?? null, $duracaoMeses);
 
             $userStmt = $this->db->prepare("SELECT saldo, saldo_plano, tipoplano FROM users WHERE id = ? LIMIT 1 FOR UPDATE");
             $userStmt->execute([$userId]);
@@ -218,10 +250,13 @@ class SistemasHospedagemVps6 extends BaseModel {
 
             $ipVps = '';
 
+            $planStartAt = date('Y-m-d H:i:s');
+            $planEndAt = date('Y-m-d H:i:s', strtotime("+{$duracaoMeses} months", strtotime($planStartAt)));
+
             $insertStmt = $this->db->prepare(
                 "INSERT INTO {$this->table}
-                (module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
+                (module_id, user_id, nome_solicitante, nome_instancia, ip_vps, configuracao_linux, duracao_meses, plan_start_at, plan_end_at, status, valor_cobrado, desconto_aplicado, saldo_usado, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'registrado', ?, ?, ?, NOW(), NOW())"
             );
             $insertStmt->execute([
                 $moduleId,
@@ -231,6 +266,8 @@ class SistemasHospedagemVps6 extends BaseModel {
                 $ipVps,
                 $configuracaoPadrao,
                 $duracaoMeses,
+                $planStartAt,
+                $planEndAt,
                 $valorFinal,
                 $descontoValor,
                 $saldoUsado,
@@ -244,7 +281,7 @@ class SistemasHospedagemVps6 extends BaseModel {
             $this->syncUserWalletBalance($userId, 'main', $novoSaldoCarteira);
             $this->syncUserWalletBalance($userId, 'plan', $novoSaldoPlano);
 
-            $description = "Hospedagem VPS 6 meses (IP pendente de configuração)";
+            $description = "Hospedagem VPS {$duracaoMeses} meses (IP pendente de configuração)";
 
             if ($debitoPlano > 0) {
                 $this->insertWalletTransaction(
@@ -308,6 +345,8 @@ class SistemasHospedagemVps6 extends BaseModel {
                 'ip_vps' => $ipVps,
                 'configuracao_linux' => $configuracaoPadrao,
                 'duracao_meses' => $duracaoMeses,
+                'plan_start_at' => $planStartAt,
+                'plan_end_at' => $planEndAt,
                 'valor_cobrado' => $valorFinal,
                 'desconto_aplicado' => $descontoValor,
                 'saldo_usado' => $saldoUsado,
@@ -342,6 +381,43 @@ class SistemasHospedagemVps6 extends BaseModel {
         } catch (Exception $e) {
             // fallback silencioso para não bloquear a aplicação
         }
+    }
+
+    private function ensurePlanDateColumns(): void {
+        try {
+            $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_start_at'");
+            if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_start_at DATETIME NULL AFTER duracao_meses");
+            }
+
+            $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_end_at'");
+            if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_end_at DATETIME NULL AFTER plan_start_at");
+            }
+        } catch (Exception $e) {
+            // fallback silencioso para não bloquear a aplicação
+        }
+    }
+
+    private function resolveDurationMonthsFromModule(?string $moduleName, int $fallback): int {
+        $normalizedName = strtolower(trim((string)$moduleName));
+        if ($normalizedName === '') {
+            return max(1, $fallback);
+        }
+
+        if (preg_match('/1\s*ano|12\s*mes/', $normalizedName)) {
+            return 12;
+        }
+
+        if (preg_match('/1\s*m[eê]s/', $normalizedName)) {
+            return 1;
+        }
+
+        if (preg_match('/6\s*mes/', $normalizedName)) {
+            return 6;
+        }
+
+        return max(1, $fallback);
     }
 
     private function resolveDiscountPercent(int $userId, string $planName): float {
