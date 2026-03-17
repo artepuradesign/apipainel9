@@ -22,6 +22,9 @@ import {
 import { type DashboardStats } from '@/hooks/useApiDashboardAdmin';
 import { pdfRgService } from '@/services/pdfRgService';
 import { editarPdfService } from '@/services/pdfPersonalizadoService';
+import { sistemasDominioComService } from '@/services/sistemasDominioComService';
+import { sistemasDominioComBrService } from '@/services/sistemasDominioComBrService';
+import { sistemasHospedagemVps6Service } from '@/services/sistemasHospedagemVps6Service';
 
 interface UnifiedAdminStatsCardsProps {
   dashboardStats: DashboardStats | null;
