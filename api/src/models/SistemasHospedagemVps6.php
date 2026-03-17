@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/BaseModel.php';
+require_once __DIR__ . '/../services/NotificationService.php';
 
 class SistemasHospedagemVps6 extends BaseModel {
     protected $table = 'sistemas_hospedagem_vps_6';
@@ -7,6 +8,7 @@ class SistemasHospedagemVps6 extends BaseModel {
     public function __construct($db) {
         parent::__construct($db);
         $this->ensureStatusEnum();
+        $this->ensurePlanDateColumns();
     }
 
     public function findByIdForUser(int $id, int $userId): ?array {
