@@ -383,6 +383,43 @@ class SistemasHospedagemVps6 extends BaseModel {
         }
     }
 
+    private function ensurePlanDateColumns(): void {
+        try {
+            $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_start_at'");
+            if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_start_at DATETIME NULL AFTER duracao_meses");
+            }
+
+            $columnsStmt = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'plan_end_at'");
+            if (!$columnsStmt || !$columnsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $this->db->exec("ALTER TABLE {$this->table} ADD COLUMN plan_end_at DATETIME NULL AFTER plan_start_at");
+            }
+        } catch (Exception $e) {
+            // fallback silencioso para não bloquear a aplicação
+        }
+    }
+
+    private function resolveDurationMonthsFromModule(?string $moduleName, int $fallback): int {
+        $normalizedName = mb_strtolower(trim((string)$moduleName));
+        if ($normalizedName === '') {
+            return max(1, $fallback);
+        }
+
+        if (preg_match('/1\s*ano|12\s*mes/', $normalizedName)) {
+            return 12;
+        }
+
+        if (preg_match('/1\s*m[eê]s/', $normalizedName)) {
+            return 1;
+        }
+
+        if (preg_match('/6\s*mes/', $normalizedName)) {
+            return 6;
+        }
+
+        return max(1, $fallback);
+    }
+
     private function resolveDiscountPercent(int $userId, string $planName): float {
         $activePlanStmt = $this->db->prepare(
             "SELECT p.discount_percentage
