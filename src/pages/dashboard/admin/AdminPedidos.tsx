@@ -263,6 +263,65 @@ const AdminPedidos = () => {
   const [qrCadastroLoading, setQrCadastroLoading] = useState(false);
   const [workflowIp, setWorkflowIp] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [moduleConfigsByType, setModuleConfigsByType] = useState<Partial<Record<UnifiedPedido['type'], PedidoModuleConfig>>>({});
+
+  const normalizeModuleRoute = useCallback((value?: string | null) => {
+    const raw = (value || '').trim();
+    if (!raw) return '';
+    if (raw.startsWith('/')) return raw;
+    if (raw.startsWith('dashboard/')) return `/${raw}`;
+    return `/dashboard/${raw}`;
+  }, []);
+
+  const resolvePedidoModuleConfig = useCallback((modules: ApiModule[], pedidoType: UnifiedPedido['type']): PedidoModuleConfig => {
+    const byType = {
+      'pdf-rg': ['pdf-rg', 'pdf rg', 'rg pdf'],
+      'pdf-personalizado': ['pdf-personalizado', 'pdf personalizado'],
+      'dominio-com': ['sistemas-dominio-com', 'dominio-com', 'domínio .com'],
+      'dominio-com-br': ['sistemas-dominio-com-br', 'dominio-com-br', 'domínio .com.br'],
+      'vps-6': ['sistemas-hospedagem-vps-6', 'hospedagem-vps-6', 'vps 6 meses'],
+    } as const;
+
+    const candidates = byType[pedidoType] || [];
+
+    const found = modules.find((module) => {
+      const route = normalizeModuleRoute(module.api_endpoint || module.path || '');
+      const haystack = [module.slug, module.name, module.title, route]
+        .map((item) => (item || '').toLowerCase());
+
+      return candidates.some((candidate) => haystack.some((value) => value.includes(candidate)));
+    });
+
+    return {
+      icon: found?.icon,
+      color: found?.color,
+    };
+  }, [normalizeModuleRoute]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadModulesConfig = async () => {
+      const response = await moduleService.getAll();
+      if (!isMounted || !response.success || !response.data) return;
+
+      const nextConfigs: Partial<Record<UnifiedPedido['type'], PedidoModuleConfig>> = {
+        'pdf-rg': resolvePedidoModuleConfig(response.data, 'pdf-rg'),
+        'pdf-personalizado': resolvePedidoModuleConfig(response.data, 'pdf-personalizado'),
+        'dominio-com': resolvePedidoModuleConfig(response.data, 'dominio-com'),
+        'dominio-com-br': resolvePedidoModuleConfig(response.data, 'dominio-com-br'),
+        'vps-6': resolvePedidoModuleConfig(response.data, 'vps-6'),
+      };
+
+      setModuleConfigsByType(nextConfigs);
+    };
+
+    loadModulesConfig();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvePedidoModuleConfig]);
 
   const loadQrCadastroByPedido = useCallback(async (pedido: PdfRgPedido) => {
     setQrCadastroLoading(true);
