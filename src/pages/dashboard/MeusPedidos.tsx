@@ -583,6 +583,8 @@ const MeusPedidos = () => {
             ...pedido,
             nome_solicitante: p.nome_solicitante,
             dominio_completo: p.dominio_completo,
+            plan_start_at: p.plan_start_at,
+            plan_end_at: p.plan_end_at,
             preco_pago: p.valor_cobrado,
             status: mappedStatus,
             created_at: p.created_at,
