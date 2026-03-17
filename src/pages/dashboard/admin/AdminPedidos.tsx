@@ -1160,6 +1160,7 @@ const AdminPedidos = () => {
             <div className="space-y-3">
               {pedidos.map((p) => {
                 const ModuleIcon = getPedidoModuleIcon(p);
+                const moduleIconColorClass = getPedidoModuleIconColorClass(p.type);
 
                 return (
                   <div
@@ -1167,13 +1168,13 @@ const AdminPedidos = () => {
                     className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="h-10 w-10 shrink-0 rounded-md border bg-muted flex items-center justify-center">
-                        <ModuleIcon className="h-5 w-5 text-foreground/80" />
+                      <div className="h-11 w-11 shrink-0 rounded-md border bg-muted flex items-center justify-center">
+                        <ModuleIcon className={`h-6 w-6 ${moduleIconColorClass}`} />
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className={p.type === 'pdf-personalizado' ? 'bg-violet-500/10 text-violet-600 border-violet-500/30' : p.type === 'dominio-com' || p.type === 'dominio-com-br' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : p.type === 'vps-6' ? 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30' : 'bg-sky-500/10 text-sky-600 border-sky-500/30'}>
+                          <Badge variant="outline" className={getPedidoTypeBadgeClass(p.type)}>
                             {typeLabel(p)}
                           </Badge>
                           <span className="font-medium text-sm">#{p.id}</span>
