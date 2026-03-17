@@ -704,7 +704,7 @@ const MeusPedidos = () => {
       ? 'Domínio .COM.BR'
       : getVpsLabel(pedido)
   );
-  const canCancelPedido = (status: PdfRgStatus) => ['realizado', 'pagamento_confirmado'].includes(status);
+  const canCancelPedido = (status: UnifiedStatus) => ['realizado', 'pagamento_confirmado'].includes(status);
 
   const handleCancelPedido = async (pedido: UnifiedPedido) => {
     if (!canCancelPedido(pedido.status) || pedido.type === 'dominio-com') return;
