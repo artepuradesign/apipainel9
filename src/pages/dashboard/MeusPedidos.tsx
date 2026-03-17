@@ -617,8 +617,9 @@ const MeusPedidos = () => {
   };
 
   const getVpsLabel = (pedido: UnifiedPedido) => {
-    if ((pedido.duracao_meses || 0) >= 12) return 'VPS 1 ANO';
-    if ((pedido.duracao_meses || 0) <= 1) return 'VPS 1 MÊS';
+    const months = Number(pedido.duracao_meses || 6);
+    if (months >= 12) return 'VPS 1 ANO';
+    if (months <= 1) return 'VPS 1 MÊS';
     return 'VPS 6 MESES';
   };
 

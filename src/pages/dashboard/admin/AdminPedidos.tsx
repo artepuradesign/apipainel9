@@ -901,7 +901,7 @@ const AdminPedidos = () => {
 
   const getVpsLabel = (pedido: Pick<UnifiedPedido, 'type' | 'raw_vps'>) => {
     if (pedido.type !== 'vps-6') return '';
-    const months = Number(pedido.raw_vps?.duracao_meses || 0);
+    const months = Number(pedido.raw_vps?.duracao_meses || 6);
     if (months >= 12) return 'VPS 1 ANO';
     if (months <= 1) return 'VPS 1 MÊS';
     return 'VPS 6 MESES';
