@@ -892,6 +892,8 @@ const MeusPedidos = () => {
                   <>
                     {selectedPedido.nome_solicitante && <><span className="text-muted-foreground">{t.requester}:</span><span>{selectedPedido.nome_solicitante}</span></>}
                     {selectedPedido.dominio_completo && <><span className="text-muted-foreground">{t.domain}:</span><span className="font-mono">{selectedPedido.dominio_completo}</span></>}
+                    <><span className="text-muted-foreground">Início do domínio:</span><span>{formatFullDate(getDomainPlanStartAt(selectedPedido)) || '—'}</span></>
+                    <><span className="text-muted-foreground">Término do domínio:</span><span>{formatFullDate(getDomainPlanEndAt(selectedPedido)) || '—'}</span></>
                   </>
                 )}
                 <span className="text-muted-foreground">{t.value}:</span><span>R$ {Number(selectedPedido.preco_pago || 0).toFixed(2)}</span>
